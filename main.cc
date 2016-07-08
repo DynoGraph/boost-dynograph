@@ -6,16 +6,24 @@
 #include <boost/graph/page_rank.hpp>
 #include <boost/graph/betweenness_centrality.hpp>
 #include <boost/property_map/property_map.hpp>
+#include <boost/program_options.hpp>
+
 #include <fstream>
 #include <chrono>
 
+extern "C" {
+    #include <dynograph_util.h>
+}
 
 using std::cout;
+using std::cerr;
 using std::endl;
 using std::ifstream;
 using std::map;
 using std::chrono::steady_clock;
 using std::chrono::duration;
+
+namespace po = boost::program_options;
 
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS> vecGraph;
 
@@ -27,8 +35,27 @@ namespace std {
     }
 }
 
-int main() {
-    std::ifstream input("/ssd/sc15/sc15-10K.el");
+int main(int argc, char *argv[]) {
+
+    std::string inputGraph;
+
+    po::options_description desc("Usage: ");
+    desc.add_options()
+        ("help", "Display help")
+        ("input", po::value<std::string>(&inputGraph), "Path for the graph to load")
+    ;
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+
+    if (vm.count("help") || !vm.count("input"))
+    {
+        cerr << desc << "\n";
+        return -1;
+    }
+
+    cerr << "Loading " << inputGraph << "\n";
+    std::ifstream input(inputGraph);
 
     typedef boost::graph_traits<vecGraph>::vertices_size_type size_type;
     typedef boost::graph_traits<vecGraph>::vertex_descriptor vertex;

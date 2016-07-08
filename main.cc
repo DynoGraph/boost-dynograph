@@ -25,7 +25,10 @@ using std::chrono::duration;
 
 namespace po = boost::program_options;
 
-typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS> vecGraph;
+typedef boost::vecS OutEdgeList;
+typedef boost::vecS VertexList;
+
+typedef boost::adjacency_list<OutEdgeList, VertexList, boost::bidirectionalS> Graph;
 
 namespace std {
     template<typename T>
@@ -57,8 +60,8 @@ int main(int argc, char *argv[]) {
     cerr << "Loading " << inputGraph << "\n";
     std::ifstream input(inputGraph);
 
-    typedef boost::graph_traits<vecGraph>::vertices_size_type size_type;
-    typedef boost::graph_traits<vecGraph>::vertex_descriptor vertex;
+    typedef boost::graph_traits<Graph>::vertices_size_type size_type;
+    typedef boost::graph_traits<Graph>::vertex_descriptor vertex;
 
     std::map<vertex, double> mymap;
     boost::associative_property_map<std::map<vertex, double>> rank_map(mymap);
@@ -69,7 +72,7 @@ int main(int argc, char *argv[]) {
 
     auto start = steady_clock::now();
 
-    vecGraph g(input_begin, input_end, n_vertices);
+    Graph g(input_begin, input_end, n_vertices);
 
     auto end = steady_clock::now();
 

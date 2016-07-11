@@ -5,6 +5,9 @@
 #include <boost/graph/directed_graph.hpp>
 #include <boost/graph/page_rank.hpp>
 #include <boost/graph/betweenness_centrality.hpp>
+#include <boost/graph/connected_components.hpp>
+#include <boost/graph/clustering_coefficient.hpp>
+
 #include <boost/property_map/property_map.hpp>
 #include <boost/program_options.hpp>
 
@@ -73,6 +76,74 @@ getArgs(int argc, char **argv)
     return args;
 }
 
+void insertBatch(DynoGraph::Batch batch, Graph &g)
+{
+    for (DynoGraph::Edge e : batch)
+    {
+        // TODO check return value and update weight&timestamp if present
+        add_edge(e.src, e.dst, g);
+    }
+}
+
+std::vector<VertexId> bfsRoots = {3, 30, 300, 4, 40, 400};
+std::vector<string> algs = {"bfs", "bc", "cc", "clustering", "pagerank"};
+
+void runAlgorithm(string algName, Graph &g, int64_t trial)
+{
+    cerr << "Running " << algName << "...\n";
+
+    if (algName == "all")
+    {
+        for (string alg : algs)
+        {
+            runAlgorithm(alg, g, trial);
+        }
+    }
+
+    else if (algName == "bfs")
+    {
+        for (VertexId root : bfsRoots)
+        {
+            boost::graph::breadth_first_search(g, root);
+        }
+    }
+
+    else if (algName == "bc")
+    {
+        std::map<VertexId, double> vertexCentrality;
+        boost::associative_property_map<std::map<VertexId, double>> centrality_map(vertexCentrality);
+        boost::brandes_betweenness_centrality(g, centrality_map);
+    }
+
+    else if (algName == "cc")
+    {
+        // FIXME use incremental_components here instead
+        std::map<VertexId, int64_t> vertexComponents;
+        boost::associative_property_map<std::map<VertexId, int64_t>> component_map(vertexComponents);
+        boost::connected_components(g, component_map);
+    }
+
+    else if (algName == "clustering")
+    {
+        std::map<VertexId, int64_t> vertexCoefficients;
+        boost::associative_property_map<std::map<VertexId, int64_t>> coefficients_map(vertexCoefficients);
+        boost::all_clustering_coefficients(g, coefficients_map);
+    }
+
+    else if (algName == "pagerank")
+    {
+        std::map<VertexId, double> vertexRanks;
+        boost::associative_property_map<std::map<VertexId, double>> rank_map(vertexRanks);
+        boost::graph::page_rank(g, rank_map, boost::graph::n_iterations(20), 0.85);
+    }
+
+    else
+    {
+        cerr << "Algorithm " << algName << " not implemented!\n";
+        exit(-1);
+    }
+}
+
 
 int main(int argc, char *argv[]) {
     // Parse the command line
@@ -102,11 +173,7 @@ int main(int argc, char *argv[]) {
             hooks_region_begin(trial);
 
             // Batch insertion
-            for (DynoGraph::Edge e : dataset.getBatch(batchId))
-            {
-                // TODO check return value and update weight&timestamp if present
-                add_edge(e.src, e.dst, g);
-            }
+            insertBatch(dataset.getBatch(batchId), g);
 
             hooks_region_end(trial);
             t2 = steady_clock::now();
@@ -115,14 +182,11 @@ int main(int argc, char *argv[]) {
             cerr << "Number of vertices: " << g.m_vertices.size() << "\n";
             cerr << "Number of edges: " << g.m_edges.size() << "\n";
 
-            cerr << "Running page rank...\n";
             t1 = steady_clock::now();
             hooks_region_begin(trial);
 
             // Algorithm
-            std::map<VertexId, double> mymap;
-            boost::associative_property_map<std::map<VertexId, double>> rank_map(mymap);
-            boost::graph::page_rank(g,  rank_map, boost::graph::n_iterations(20), 0.85);
+            runAlgorithm(args.algName, g, trial);
 
             hooks_region_end(trial);
             t2 = steady_clock::now();

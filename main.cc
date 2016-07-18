@@ -170,12 +170,12 @@ int main(int argc, char *argv[]) {
         {
             cerr << "Loading batch " << batchId << "...\n";
             t1 = steady_clock::now();
-            hooks_region_begin("insertions", trial);
+            Hooks::getInstance().region_begin("insertions", trial);
 
             // Batch insertion
             insertBatch(dataset.getBatch(batchId), g);
 
-            hooks_region_end("insertions", trial);
+            Hooks::getInstance().region_end("insertions", trial);
             t2 = steady_clock::now();
             printTime("Edge stream", t2 - t1);
 
@@ -183,12 +183,12 @@ int main(int argc, char *argv[]) {
             cerr << "Number of edges: " << g.m_edges.size() << "\n";
 
             t1 = steady_clock::now();
-            hooks_region_begin(args.algName, trial);
+            Hooks::getInstance().region_begin(args.algName, trial);
 
             // Algorithm
             runAlgorithm(args.algName, g, trial);
 
-            hooks_region_end(args.algName, trial);
+            Hooks::getInstance().region_end(args.algName, trial);
             t2 = steady_clock::now();
             printTime("Page rank", t2 - t1);
         }

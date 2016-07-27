@@ -75,7 +75,7 @@ void insertBatch(DynoGraph::Batch batch, Graph &g)
     for (DynoGraph::Edge e : batch)
     {
         // TODO check return value and update weight&timestamp if present
-        add_edge(e.src, e.dst, g);
+        add_edge(e.src, e.dst, e.weight, g);
     }
 }
 

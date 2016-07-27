@@ -2,5 +2,13 @@
 typedef boost::@OUT_EDGE_LIST_TYPE@ OutEdgeList;
 typedef boost::@VERTEX_LIST_TYPE@ VertexList;
 // TODO add graph properties
-typedef boost::adjacency_list<OutEdgeList, VertexList, boost::bidirectionalS> Graph;
+typedef boost::adjacency_list<
+    OutEdgeList,
+    VertexList,
+    boost::bidirectionalS,
+    boost::no_property,
+    boost::property< boost::edge_weight_t, int64_t>
+> Graph;
+
 typedef boost::graph_traits<Graph>::vertex_descriptor VertexId;
+typedef boost::graph_traits<Graph>::edge_descriptor Edge;

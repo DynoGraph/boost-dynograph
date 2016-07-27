@@ -188,29 +188,30 @@ int main(int argc, char *argv[]) {
         // Ingest each batch and run analytics
         for (int batchId = 0; batchId < dataset.getNumBatches(); ++batchId)
         {
-            cerr << "Loading batch " << batchId << "...\n";
-            t1 = steady_clock::now();
-            Hooks::getInstance().region_begin("insertions", trial);
+            // Deletions
+            int64_t modified_after = dataset.getTimestampForWindow(batchId, args.windowSize);
+            if (args.enableDeletions)
+            {
+                cerr << "Deleting edges older than " << modified_after << "\n";
+                Hooks::getInstance().region_begin("deletions", trial);
+                deleteEdges(modified_after, g);
+                Hooks::getInstance().region_end("deletions", trial);
+            }
 
             // Batch insertion
+            cerr << "Loading batch " << batchId << "...\n";
+            Hooks::getInstance().region_begin("insertions", trial);
             insertBatch(dataset.getBatch(batchId), g);
-
             Hooks::getInstance().region_end("insertions", trial);
-            t2 = steady_clock::now();
-            printTime("Edge stream", t2 - t1);
 
             cerr << "Number of vertices: " << g.m_vertices.size() << "\n";
             cerr << "Number of edges: " << g.m_edges.size() << "\n";
 
-            t1 = steady_clock::now();
-            Hooks::getInstance().region_begin(args.algName, trial);
-
             // Algorithm
+            Hooks::getInstance().region_begin(args.algName, trial);
             runAlgorithm(args.algName, g, trial);
-
             Hooks::getInstance().region_end(args.algName, trial);
-            t2 = steady_clock::now();
-            printTime("Page rank", t2 - t1);
+
         }
     }
 

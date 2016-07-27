@@ -1,6 +1,10 @@
+#include "graph_config.h"
+
 #include <map>
 #include <iostream>
-#include <boost/graph/adjacency_list.hpp>
+#include <fstream>
+#include <chrono>
+
 #include <boost/graph/edge_list.hpp>
 #include <boost/graph/directed_graph.hpp>
 #include <boost/graph/page_rank.hpp>
@@ -9,10 +13,6 @@
 #include <boost/graph/clustering_coefficient.hpp>
 
 #include <boost/property_map/property_map.hpp>
-#include <boost/program_options.hpp>
-
-#include <fstream>
-#include <chrono>
 
 #include <dynograph_util.hh>
 #include <hooks.h>
@@ -25,12 +25,6 @@ using std::chrono::steady_clock;
 using std::chrono::duration;
 using std::chrono::steady_clock;
 using std::string;
-
-typedef boost::vecS OutEdgeList;
-typedef boost::vecS VertexList;
-// TODO add graph properties
-typedef boost::adjacency_list<OutEdgeList, VertexList, boost::bidirectionalS> Graph;
-typedef boost::graph_traits<Graph>::vertex_descriptor VertexId;
 
 void printTime(string stepDesc, duration<double, std::milli> diff)
 {
@@ -151,7 +145,7 @@ int main(int argc, char *argv[]) {
 
     // Create the graph
     // TODO scale this up with available system memory
-    VertexId max_num_vertices = 10001;
+    Graph::vertices_size_type max_num_vertices = 10001;
     Graph g(max_num_vertices);
 
     // Pre-load the edge batches

@@ -1,0 +1,6 @@
+#include <boost/graph/adjacency_list.hpp>
+typedef boost::@OUT_EDGE_LIST_TYPE@ OutEdgeList;
+typedef boost::@VERTEX_LIST_TYPE@ VertexList;
+// TODO add graph properties
+typedef boost::adjacency_list<OutEdgeList, VertexList, boost::bidirectionalS> Graph;
+typedef boost::graph_traits<Graph>::vertex_descriptor VertexId;

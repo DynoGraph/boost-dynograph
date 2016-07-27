@@ -1,13 +1,23 @@
 #include <boost/graph/adjacency_list.hpp>
 typedef boost::@OUT_EDGE_LIST_TYPE@ OutEdgeList;
 typedef boost::@VERTEX_LIST_TYPE@ VertexList;
-// TODO add graph properties
+
+// Define a new edge property for timestamps
+namespace boost {
+    enum edge_timestamp_t { edge_timestamp };
+    BOOST_INSTALL_PROPERTY(edge, timestamp);
+}
+
+// Boost uses template nesting to implement multiple edge properties
+typedef boost::property< boost::edge_timestamp_t, int64_t> Timestamp;
+typedef boost::property< boost::edge_weight_t, int64_t, Timestamp> Weight;
+
 typedef boost::adjacency_list<
     OutEdgeList,
     VertexList,
     boost::bidirectionalS,
-    boost::no_property,
-    boost::property< boost::edge_weight_t, int64_t>
+    boost::no_property, /* Vertex properties */
+    Weight /* Edge properties */
 > Graph;
 
 typedef boost::graph_traits<Graph>::vertex_descriptor VertexId;

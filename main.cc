@@ -74,9 +74,35 @@ void insertBatch(DynoGraph::Batch batch, Graph &g)
 {
     for (DynoGraph::Edge e : batch)
     {
-        // TODO check return value and update weight&timestamp if present
-        add_edge(e.src, e.dst, e.weight, g);
+        // Try to insert the edge
+        auto inserted_edge = add_edge(
+            e.src,
+            e.dst,
+            // Boost uses template nesting to implement multiple edge properties
+            Weight(e.weight, Timestamp(e.timestamp)),
+            g);
+        // If the edge already existed...
+        if (!inserted_edge.second)
+        {
+            Edge &existing_edge = inserted_edge.first;
+            // Increment edge weight
+            int64_t weight = get(boost::edge_weight, g, existing_edge);
+            weight += e.weight;
+            put(boost::edge_weight, g, existing_edge, weight);
+            // Overwrite timestamp
+            put(boost::edge_timestamp, g, existing_edge, e.timestamp);
+        }
     }
+}
+
+void deleteEdges(int64_t threshold, Graph &g)
+{
+    remove_edge_if(
+        [&](const Edge &e)
+        {
+            return get(boost::edge_timestamp, g, e) < threshold;
+        }
+    ,g);
 }
 
 std::vector<VertexId> bfsRoots = {3, 30, 300, 4, 40, 400};

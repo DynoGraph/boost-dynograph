@@ -1,6 +1,9 @@
 cmake_minimum_required (VERSION 2.8.12)
 project (BOOST-DYNOGRAPH)
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake")
+
+include(cotire)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall")
 
 # From /usr/local/include/boost/graph/adjacency_list.hpp
@@ -49,3 +52,5 @@ target_link_libraries(boost-dynograph
     ${Boost_LIBRARIES}
     ${MPI_CXX_LIBRARIES}
 )
+# Enable precompiled headers
+cotire(boost-dynograph)

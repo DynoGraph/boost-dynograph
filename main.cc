@@ -11,8 +11,9 @@
 #include <boost/graph/betweenness_centrality.hpp>
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/clustering_coefficient.hpp>
-
+#include <boost/graph/parallel/basic_reduce.hpp>
 #include <boost/property_map/property_map.hpp>
+#include <boost/property_map/parallel/distributed_property_map.hpp>
 
 #include <dynograph_util.hh>
 #include <hooks.h>
@@ -75,9 +76,9 @@ void insertBatch(DynoGraph::Batch batch, Graph &g)
     for (DynoGraph::Edge e : batch)
     {
         // Try to insert the edge
-        auto inserted_edge = add_edge(
-            e.src,
-            e.dst,
+        std::pair<Edge, bool> inserted_edge = boost::add_edge(
+            boost::vertex(e.src, g),
+            boost::vertex(e.dst, g),
             // Boost uses template nesting to implement multiple edge properties
             Weight(e.weight, Timestamp(e.timestamp)),
             g);
@@ -97,7 +98,7 @@ void insertBatch(DynoGraph::Batch batch, Graph &g)
 
 void deleteEdges(int64_t threshold, Graph &g)
 {
-    remove_edge_if(
+    boost::remove_edge_if(
         [&](const Edge &e)
         {
             return get(boost::edge_timestamp, g, e) < threshold;
@@ -105,7 +106,7 @@ void deleteEdges(int64_t threshold, Graph &g)
     ,g);
 }
 
-std::vector<VertexId> bfsRoots = {3, 30, 300, 4, 40, 400};
+//std::vector<VertexId> bfsRoots = {3, 30, 300, 4, 40, 400};
 std::vector<string> algs = {"bfs", "bc", "cc", "clustering", "pagerank"};
 
 void runAlgorithm(string algName, Graph &g, int64_t trial)
@@ -119,7 +120,7 @@ void runAlgorithm(string algName, Graph &g, int64_t trial)
             runAlgorithm(alg, g, trial);
         }
     }
-
+/*
     else if (algName == "bfs")
     {
         for (VertexId root : bfsRoots)
@@ -130,19 +131,23 @@ void runAlgorithm(string algName, Graph &g, int64_t trial)
 
     else if (algName == "bc")
     {
-        std::map<VertexId, double> vertexCentrality;
-        boost::associative_property_map<std::map<VertexId, double>> centrality_map(vertexCentrality);
-        boost::brandes_betweenness_centrality(g, centrality_map);
-    }
+        typedef boost::property_map<Graph, boost::vertex_index_t>::const_type IndexMap;
+        typedef boost::iterator_property_map<std::vector<int>::iterator, IndexMap> CentralityMap;
 
+        std::vector<int> centralityS(boost::num_vertices(g), 0);
+        CentralityMap centrality(centralityS.begin(), get(boost::vertex_index, g));
+
+        boost::brandes_betweenness_centrality(g, centrality);
+    }
+*/
     else if (algName == "cc")
     {
         // FIXME use incremental_components here instead
-        std::map<VertexId, int64_t> vertexComponents;
-        boost::associative_property_map<std::map<VertexId, int64_t>> component_map(vertexComponents);
-        boost::connected_components(g, component_map);
+        std::vector<int> local_components_vec(boost::num_vertices(g));
+        typedef boost::iterator_property_map<std::vector<int>::iterator, boost::property_map<Graph, boost::vertex_index_t>::type> ComponentMap;
+        ComponentMap component(local_components_vec.begin(), get(boost::vertex_index, g));
     }
-
+/*
     else if (algName == "clustering")
     {
         std::map<VertexId, int64_t> vertexCoefficients;
@@ -156,7 +161,7 @@ void runAlgorithm(string algName, Graph &g, int64_t trial)
         boost::associative_property_map<std::map<VertexId, double>> rank_map(vertexRanks);
         boost::graph::page_rank(g, rank_map, boost::graph::n_iterations(20), 0.85);
     }
-
+*/
     else
     {
         cerr << "Algorithm " << algName << " not implemented!\n";
@@ -166,6 +171,7 @@ void runAlgorithm(string algName, Graph &g, int64_t trial)
 
 
 int main(int argc, char *argv[]) {
+    boost::mpi::environment env(argc, argv);
     // Parse the command line
     Args args = getArgs(argc, argv);
 
@@ -173,7 +179,7 @@ int main(int argc, char *argv[]) {
     // TODO scale this up with available system memory
     Graph::vertices_size_type max_num_vertices = 10001;
     Graph g(max_num_vertices);
-
+    
     // Pre-load the edge batches
     cerr << "Pre-loading " << args.inputPath << " from disk...\n";
     auto t1 = steady_clock::now();
@@ -204,8 +210,8 @@ int main(int argc, char *argv[]) {
             insertBatch(dataset.getBatch(batchId), g);
             Hooks::getInstance().region_end("insertions", trial);
 
-            cerr << "Number of vertices: " << g.m_vertices.size() << "\n";
-            cerr << "Number of edges: " << g.m_edges.size() << "\n";
+            //cerr << "Number of vertices: " << g.m_vertices.size() << "\n";
+            //cerr << "Number of edges: " << g.m_edges.size() << "\n";
 
             // Algorithm
             Hooks::getInstance().region_begin(args.algName, trial);

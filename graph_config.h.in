@@ -1,4 +1,7 @@
-#include <boost/graph/adjacency_list.hpp>
+//#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/use_mpi.hpp>
+#include <boost/graph/distributed/adjacency_list.hpp>
+#include <boost/graph/distributed/mpi_process_group.hpp>
 typedef boost::@OUT_EDGE_LIST_TYPE@ OutEdgeList;
 typedef boost::@VERTEX_LIST_TYPE@ VertexList;
 
@@ -14,7 +17,7 @@ typedef boost::property< boost::edge_weight_t, int64_t, Timestamp> Weight;
 
 typedef boost::adjacency_list<
     OutEdgeList,
-    VertexList,
+    boost::distributedS<boost::graph::distributed::mpi_process_group, VertexList>,
     boost::bidirectionalS,
     boost::no_property, /* Vertex properties */
     Weight /* Edge properties */

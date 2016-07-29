@@ -25,7 +25,11 @@ if(OPENMP_FOUND)
 endif()
 
 # Find Boost and check version
-find_package(Boost 1.61.0 REQUIRED)
+find_package(Boost 1.61.0 REQUIRED
+    COMPONENTS graph graph_parallel mpi serialization system)
+
+# Find mpi
+find_package(MPI)
 
 # Build libraries
 add_subdirectory(dynograph_util)
@@ -37,8 +41,11 @@ target_include_directories(boost-dynograph PRIVATE
     ${CMAKE_SOURCE_DIR}/dynograph_util
     ${CMAKE_SOURCE_DIR}/hooks
     ${Boost_INCLUDE_DIRS}
+    ${MPI_CXX_INCLUDE_PATH}
 )
 target_link_libraries(boost-dynograph
     dynograph_util
     hooks
+    ${Boost_LIBRARIES}
+    ${MPI_CXX_LIBRARIES}
 )

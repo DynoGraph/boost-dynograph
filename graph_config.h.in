@@ -15,9 +15,11 @@ namespace boost {
 typedef boost::property< boost::edge_timestamp_t, int64_t> Timestamp;
 typedef boost::property< boost::edge_weight_t, int64_t, Timestamp> Weight;
 
+typedef boost::graph::distributed::mpi_process_group ProcessGroup;
+
 typedef boost::adjacency_list<
     OutEdgeList,
-    boost::distributedS<boost::graph::distributed::mpi_process_group, VertexList>,
+    boost::distributedS<ProcessGroup, VertexList>,
     boost::bidirectionalS,
     boost::no_property, /* Vertex properties */
     Weight /* Edge properties */

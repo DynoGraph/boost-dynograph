@@ -39,7 +39,7 @@ add_subdirectory(dynograph_util)
 add_subdirectory(hooks)
 
 # Build executable
-add_executable(boost-dynograph main.cc)
+add_executable(boost-dynograph main.cc distributed_dataset.cpp distributed_dataset.h)
 target_include_directories(boost-dynograph PRIVATE
     ${CMAKE_SOURCE_DIR}/dynograph_util
     ${CMAKE_SOURCE_DIR}/hooks

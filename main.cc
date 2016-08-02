@@ -14,6 +14,7 @@
 #include <boost/property_map/parallel/distributed_property_map.hpp>
 
 #include <dynograph_util.hh>
+#include "distributed_dataset.h"
 #include <hooks.h>
 
 using std::cerr;
@@ -22,6 +23,7 @@ using std::map;
 using std::chrono::steady_clock;
 using std::chrono::duration;
 using std::string;
+using std::unique_ptr;
 
 void printTime(string stepDesc, duration<double, std::milli> diff)
 {
@@ -72,7 +74,6 @@ void insertBatch(DynoGraph::Batch batch, Graph &g)
     // TODO Parallel graph load
     for (DynoGraph::Edge e : batch)
     {
-
         VertexId Src = boost::vertex(e.src, g);
         VertexId Dst = boost::vertex(e.dst, g);
         // Only insert edge if this process owns the source vertex
@@ -169,7 +170,6 @@ void runAlgorithm(string algName, Graph &g, int64_t trial)
     }
 }
 
-#define MASTER_PROCESS (boost::graph::distributed::process_id(g.process_group()) == 0)
 
 int main(int argc, char *argv[]) {
     // Initialize MPI
@@ -184,23 +184,16 @@ int main(int argc, char *argv[]) {
     Graph::vertices_size_type max_num_vertices = 100001;
     Graph g(max_num_vertices, pg);
 
-    DynoGraph::Dataset *dataset;
+    // Pre-load the edge batches
+    if (process_id(pg) == 0) { cerr << "Pre-loading " << args.inputPath << " from disk...\n"; }
+    auto t1 = steady_clock::now();
 
-    // Master process pre-loads the batches
-    if (MASTER_PROCESS)
-    {
-        // Pre-load the edge batches
-        cerr << "Pre-loading " << args.inputPath << " from disk...\n";
-        auto t1 = steady_clock::now();
+    unique_ptr<DynoGraph::Dataset> dataset = DynoGraph::loadDatasetDistributed(
+            args.inputPath, args.numBatches, communicator(pg));
 
-        dataset = new DynoGraph::Dataset(args.inputPath, args.numBatches);
-
-        auto t2 = steady_clock::now();
-        printTime("Graph pre-load", t2 - t1);
-
-    // Other processes just wait for information
-    }
-    synchronize(pg);
+    auto t2 = steady_clock::now();
+    printTime("Graph pre-load", t2 - t1);
+    cerr << "P" << process_id(pg) << ": loaded " << dataset->edges.size() << " edges\n";
 
     for (int64_t trial = 0; trial < args.numTrials; ++trial)
     {
@@ -210,7 +203,7 @@ int main(int argc, char *argv[]) {
             // Deletions
             if (args.enableDeletions)
             {
-                if (MASTER_PROCESS)
+                if (process_id(pg) == 0)
                 {
                     int64_t modified_after = dataset->getTimestampForWindow(batchId, args.windowSize);
                     cerr << "Deleting edges older than " << modified_after << "\n";
@@ -222,13 +215,11 @@ int main(int argc, char *argv[]) {
             }
 
             // Batch insertion
-            if (MASTER_PROCESS)
-            {
-                cerr << "Loading batch " << batchId << "...\n";
-                Hooks::getInstance().region_begin("insertions", trial);
-                insertBatch(dataset->getBatch(batchId), g);
-                Hooks::getInstance().region_end("insertions", trial);
-            }
+            if (process_id(pg) == 0) { cerr << "Loading batch " << batchId << "...\n"; }
+            Hooks::getInstance().region_begin("insertions", trial);
+            insertBatch(dataset->getBatch(batchId), g);
+            Hooks::getInstance().region_end("insertions", trial);
+
             synchronize(pg);
             cerr << "P" << process_id(pg) << ": Number of vertices: " << num_vertices(g) << "\n";
             cerr << "P" << process_id(pg) << ": Number of edges: " << num_edges(g) << "\n";
@@ -240,7 +231,6 @@ int main(int argc, char *argv[]) {
 
         }
     }
-    if (MASTER_PROCESS) { delete dataset; }
 
     return 0;
 }

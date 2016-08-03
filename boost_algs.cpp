@@ -10,12 +10,13 @@
 #include <boost/graph/strong_components.hpp>
 #include <boost/graph/distributed/strong_components.hpp>
 #include <boost/graph/distributed/delta_stepping_shortest_paths.hpp>
+#include <boost/graph/distributed/boman_et_al_graph_coloring.hpp>
 
 using std::string;
 using std::cerr;
 
 //std::vector<VertexId> bfsRoots = {3, 30, 300, 4, 40, 400};
-std::vector<string> algs = {"all", "bc", "cc", "sssp", "pagerank"};
+std::vector<string> algs = {"all", "bc", "cc", "gc", "sssp", "pagerank"};
 
 void runAlgorithm(string algName, Graph &g, int64_t trial)
 {
@@ -44,6 +45,15 @@ void runAlgorithm(string algName, Graph &g, int64_t trial)
         boost::strong_components(
             g,
             make_iterator_property_map(local_components_vec.begin(), get(boost::vertex_index, g))
+        );
+    }
+
+    else if (algName == "gc")
+    {
+        std::vector<int> local_color_vec(boost::num_vertices(g));
+        boost::graph::boman_et_al_graph_coloring(
+            g,
+            make_iterator_property_map(local_color_vec.begin(), get(boost::vertex_index, g))
         );
     }
 

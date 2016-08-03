@@ -1,3 +1,6 @@
+#ifndef BOOST_DYNOGRAPH_GRAPH_CONFIG_H
+#define BOOST_DYNOGRAPH_GRAPH_CONFIG_H
+
 //#include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/use_mpi.hpp>
 #include <boost/graph/distributed/adjacency_list.hpp>
@@ -27,3 +30,5 @@ typedef boost::adjacency_list<
 
 typedef boost::graph_traits<Graph>::vertex_descriptor VertexId;
 typedef boost::graph_traits<Graph>::edge_descriptor Edge;
+
+#endif

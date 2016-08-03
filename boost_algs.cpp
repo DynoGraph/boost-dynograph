@@ -7,6 +7,8 @@
 #include <boost/graph/distributed/page_rank.hpp>
 #include <boost/graph/distributed/betweenness_centrality.hpp>
 #include <boost/graph/distributed/connected_components_parallel_search.hpp>
+#include <boost/graph/strong_components.hpp>
+#include <boost/graph/distributed/strong_components.hpp>
 
 using std::string;
 using std::cerr;
@@ -37,16 +39,11 @@ void runAlgorithm(string algName, Graph &g, int64_t trial)
 
     else if (algName == "cc")
     {
-        // FIXME use incremental_components here instead (st_components)
         std::vector<int> local_components_vec(boost::num_vertices(g));
-        //typedef boost::iterator_property_map<std::vector<int>::iterator, boost::property_map<Graph, boost::vertex_index_t>::type> ComponentMap;
-        //ComponentMap component(local_components_vec.begin(), get(boost::vertex_index, g));
-        //boost::graph::distributed::connected_components_ps(g, component);
-        boost::graph::distributed::connected_components_ps(
+        boost::strong_components(
             g,
-            boost::parallel::make_iterator_property_map(local_components_vec.begin(), get(boost::vertex_index, g))
+            make_iterator_property_map(local_components_vec.begin(), get(boost::vertex_index, g))
         );
-
     }
 
     else if (algName == "pagerank")

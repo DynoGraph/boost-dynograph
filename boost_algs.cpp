@@ -9,12 +9,13 @@
 #include <boost/graph/distributed/connected_components_parallel_search.hpp>
 #include <boost/graph/strong_components.hpp>
 #include <boost/graph/distributed/strong_components.hpp>
+#include <boost/graph/distributed/delta_stepping_shortest_paths.hpp>
 
 using std::string;
 using std::cerr;
 
 //std::vector<VertexId> bfsRoots = {3, 30, 300, 4, 40, 400};
-std::vector<string> algs = {"all", "bc", "cc", "pagerank"};
+std::vector<string> algs = {"all", "bc", "cc", "sssp", "pagerank"};
 
 void runAlgorithm(string algName, Graph &g, int64_t trial)
 {
@@ -43,6 +44,19 @@ void runAlgorithm(string algName, Graph &g, int64_t trial)
         boost::strong_components(
             g,
             make_iterator_property_map(local_components_vec.begin(), get(boost::vertex_index, g))
+        );
+    }
+
+    else if (algName == "sssp")
+    {
+        std::vector<int> local_distance_vec(boost::num_vertices(g));
+        std::vector<VertexId> local_predecessor_vec(boost::num_vertices(g));
+        boost::graph::distributed::delta_stepping_shortest_paths(
+            g,
+            vertex(0, g), // TODO pick deterministic random vertex
+            make_iterator_property_map(local_predecessor_vec.begin(), get(boost::vertex_index, g)),
+            make_iterator_property_map(local_distance_vec.begin(), get(boost::vertex_index, g)),
+            get(boost::edge_weight, g)
         );
     }
 

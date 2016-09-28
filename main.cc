@@ -1,18 +1,23 @@
 #include "graph_config.h"
 
-#include <chrono>
 #include <dynograph_util.hh>
 #include "distributed_dataset.h"
 #include <hooks.h>
 #include "boost_algs.h"
 
+#include <chrono>
+#include <sstream>
+#include <vector>
+
+using std::cout;
 using std::cerr;
 using std::ifstream;
-using std::map;
 using std::chrono::steady_clock;
 using std::chrono::duration;
 using std::string;
 using std::unique_ptr;
+using std::vector;
+using std::stringstream;
 
 void printTime(string stepDesc, duration<double, std::milli> diff)
 {
@@ -98,10 +103,50 @@ void deleteEdges(int64_t threshold, Graph &g)
     ,g);
 }
 
+void reportOwnership(Graph &g)
+{
+    int64_t edgeCount = 0;
+    int64_t myEdgeCount = 0;
+    auto allEdges = edges(g);
+    for (auto e = allEdges.first; e != allEdges.second; ++e)
+    {
+        if (e->owner() == g.process_group().rank)
+        {
+            edgeCount += 1;
+        }
+        myEdgeCount += 1;
+    }
+
+    cerr << "P" << g.process_group().rank
+         << ": total edges = " << edgeCount
+         << " my edges = " << myEdgeCount << std::endl;
+    synchronize(g.process_group());
+}
+
+
+// Helper functions to split strings
+// http://stackoverflow.com/a/236803/1877086
+void split(const string &s, char delim, vector<string> &elems) {
+    stringstream ss(s);
+    string item;
+    while (getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+}
+vector<string> split(const string &s, char delim) {
+    vector<string> elems;
+    split(s, delim, elems);
+    return elems;
+}
+
+
 int main(int argc, char *argv[]) {
     // Initialize MPI
     boost::mpi::environment env(argc, argv);
     ProcessGroup pg;
+
+    // Don't flush output after each operation. Helps keep per-process output together
+    cerr << std::nounitbuf;
 
     // Parse the command line
     Args args = getArgs(argc, argv);
@@ -147,15 +192,21 @@ int main(int argc, char *argv[]) {
             insertBatch(dataset->getBatch(batchId), g);
             Hooks::getInstance().region_end("insertions", trial);
 
+
             synchronize(pg);
-            cerr << "P" << process_id(pg) << ": Number of vertices: " << num_vertices(g) << "\n";
-            cerr << "P" << process_id(pg) << ": Number of edges: " << num_edges(g) << "\n";
+
+            reportOwnership(g);
+
+            cout << "{\"num_vertices\":" << num_vertices(g) << ","
+                 <<  "\"num_edges\":"    << num_edges(g) << "}\n";
 
             // Algorithm
-            Hooks::getInstance().region_begin(args.algName, trial);
-            runAlgorithm(args.algName, g, trial);
-            Hooks::getInstance().region_end(args.algName, trial);
-
+            for (string algName : split(args.algName, ' '))
+            {
+                Hooks::getInstance().region_begin(algName, trial);
+                runAlgorithm(algName, g, trial);
+                Hooks::getInstance().region_end(algName, trial);
+            }
         }
     }
 

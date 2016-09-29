@@ -32,15 +32,16 @@ struct Args
     int64_t numBatches;
     int64_t numTrials;
     int64_t enableDeletions;
+    int64_t maxNumVertices;
 };
 
 Args
 getArgs(int argc, char **argv)
 {
     Args args;
-    if (argc != 6)
+    if (argc != 7)
     {
-        cerr << "Usage: alg_name input_path num_batches window_size num_trials \n";
+        cerr << "Usage: alg_name input_path num_batches window_size num_trials max_nv \n";
         exit(-1);
     }
 
@@ -49,46 +50,48 @@ getArgs(int argc, char **argv)
     args.numBatches = atoll(argv[3]);
     args.windowSize = atoll(argv[4]);
     args.numTrials = atoll(argv[5]);
+    args.maxNumVertices = atoll(argv[6]);
+
     if (args.windowSize < 0)
     {
         args.enableDeletions = 1;
         args.windowSize = -args.windowSize;
     } else { args.enableDeletions = 0; }
-    if (args.numBatches < 1 || args.windowSize < 1 || args.numTrials < 1)
+    if (args.numBatches < 1 || args.windowSize < 1 || args.numTrials < 1 || args.maxNumVertices < 1)
     {
-        cerr << "num_batches, window_size, and num_trials must be positive\n";
+        cerr << "num_batches, window_size, num_trials, and max_nv must be positive\n";
         exit(-1);
     }
+
 
     return args;
 }
 
-void insertBatch(DynoGraph::Batch batch, Graph &g)
+void insertBatch(DynoGraph::Batch batch, Graph &g, Graph::vertices_size_type max_nv)
 {
     // TODO Parallel graph load
     for (DynoGraph::Edge e : batch)
     {
+        assert(e.src < max_nv && e.dst < max_nv);
         VertexId Src = boost::vertex(e.src, g);
         VertexId Dst = boost::vertex(e.dst, g);
-        // Only insert edge if this process owns the source vertex
-        //if (Src.owner == process_id(g.process_group())) {
-            // Try to insert the edge
-            std::pair<Edge, bool> inserted_edge = boost::add_edge(
-                    Src, Dst,
-                    // Boost uses template nesting to implement multiple edge properties
-                    Weight(e.weight, Timestamp(e.timestamp)),
-                    g);
-            // If the edge already existed...
-            if (!inserted_edge.second) {
-                Edge &existing_edge = inserted_edge.first;
-                // Increment edge weight
-                int64_t weight = get(boost::edge_weight, g, existing_edge);
-                weight += e.weight;
-                put(boost::edge_weight, g, existing_edge, weight);
-                // Overwrite timestamp
-                put(boost::edge_timestamp, g, existing_edge, e.timestamp);
-            }
-        //}
+        // Try to insert the edge
+        std::pair<Edge, bool> inserted_edge = boost::add_edge(
+                Src, Dst,
+                // Boost uses template nesting to implement multiple edge properties
+                Weight(e.weight, Timestamp(e.timestamp)),
+                g);
+        // If the edge already existed...
+        if (!inserted_edge.second) {
+            Edge &existing_edge = inserted_edge.first;
+            // Increment edge weight
+            int64_t weight = get(boost::edge_weight, g, existing_edge);
+            weight += e.weight;
+            put(boost::edge_weight, g, existing_edge, weight);
+            // Overwrite timestamp
+            put(boost::edge_timestamp, g, existing_edge, e.timestamp);
+        }
+
     }
 }
 
@@ -152,8 +155,8 @@ int main(int argc, char *argv[]) {
     Args args = getArgs(argc, argv);
 
     // Create the graph
-    // TODO scale this up with available system memory
-    Graph::vertices_size_type max_num_vertices = 100001;
+    // TODO use a round-robin distribution strategy, then over-provision based on available memory|
+    Graph::vertices_size_type max_num_vertices = static_cast<Graph::vertices_size_type>(args.maxNumVertices);
     Graph g(max_num_vertices, pg);
 
     // Pre-load the edge batches
@@ -188,7 +191,7 @@ int main(int argc, char *argv[]) {
             // Batch insertion
             if (process_id(pg) == 0) { cerr << "Loading batch " << batchId << "...\n"; }
             Hooks::getInstance().region_begin("insertions", trial);
-            insertBatch(dataset->getBatch(batchId), g);
+            insertBatch(dataset->getBatch(batchId), g, max_num_vertices);
             Hooks::getInstance().region_end("insertions", trial);
 
             synchronize(pg);

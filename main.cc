@@ -192,13 +192,11 @@ int main(int argc, char *argv[]) {
             insertBatch(dataset->getBatch(batchId), g);
             Hooks::getInstance().region_end("insertions", trial);
 
-
             synchronize(pg);
 
-            reportOwnership(g);
-
-            cout << "{\"num_vertices\":" << num_vertices(g) << ","
-                 <<  "\"num_edges\":"    << num_edges(g) << "}\n";
+            cout << "{\"pid\":"         << process_id(pg) << ","
+                 << "\"num_vertices\":" << num_vertices(g) << ","
+                 << "\"num_edges\":"    << num_edges(g) << "}\n";
 
             // Algorithm
             for (string algName : split(args.algName, ' '))

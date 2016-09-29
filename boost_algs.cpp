@@ -20,7 +20,7 @@ std::vector<string> algs = {"all", "bc", "cc", "gc", "sssp", "pagerank"};
 
 void runAlgorithm(string algName, Graph &g, int64_t trial)
 {
-    cerr << "Running " << algName << "...\n";
+    if (g.process_group().rank == 0) { cerr << "Running " << algName << "...\n"; }
 
     if (algName == "all")
     {
@@ -88,7 +88,7 @@ void runAlgorithm(string algName, Graph &g, int64_t trial)
 
     else
     {
-        cerr << "Algorithm " << algName << " not implemented!\n";
+        if (g.process_group().rank == 0) { cerr << "Algorithm " << algName << " not implemented!\n"; }
         exit(-1);
     }
 }

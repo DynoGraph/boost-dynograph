@@ -42,7 +42,7 @@ void runAlgorithm(string algName, Graph &g, int64_t trial)
     else if (algName == "cc")
     {
         std::vector<int> local_components_vec(boost::num_vertices(g));
-        boost::strong_components(
+        boost::graph::distributed::fleischer_hendrickson_pinar_strong_components(
             g,
             make_iterator_property_map(local_components_vec.begin(), get(boost::vertex_index, g))
         );

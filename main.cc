@@ -164,8 +164,7 @@ int main(int argc, char *argv[]) {
             args.inputPath, args.numBatches, communicator(pg));
 
     auto t2 = steady_clock::now();
-    printTime("Graph pre-load", t2 - t1);
-    cerr << "P" << process_id(pg) << ": loaded " << dataset->edges.size() << " edges\n";
+    if (process_id(pg) == 0) { printTime("Graph pre-load", t2 - t1); }
 
     for (int64_t trial = 0; trial < args.numTrials; ++trial)
     {

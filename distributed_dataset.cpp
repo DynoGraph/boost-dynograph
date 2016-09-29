@@ -33,11 +33,14 @@ DynoGraph::loadDatasetDistributed(std::string path, int64_t numBatches, boost::m
             // Divide the batch into slices, one per process
             size_t edgesPerBatch = dataset->batches[0].end() - dataset->batches[0].begin();
             size_t edgesPerRank = edgesPerBatch / comm.size(); // TODO round up here
+            Batch & thisBatch = dataset->batches[batchId];
             for (int i = 0; i < comm.size(); ++i)
             {
                 size_t offset = i * edgesPerRank;
-                auto begin = dataset->batches[batchId].begin() + offset;
+                auto begin = thisBatch.begin() + offset;
                 auto end = begin + edgesPerRank;
+                // Give the remainder to the last rank
+                if (i == comm.size()-1) { end = thisBatch.end(); }
                 dividedBatch[i] = vector<Edge>(begin, end); // TODO Move construct here
             }
         }

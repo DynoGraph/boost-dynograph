@@ -171,6 +171,7 @@ int main(int argc, char *argv[]) {
 
     for (int64_t trial = 0; trial < args.numTrials; ++trial)
     {
+        Hooks::getInstance().trial = trial;
         // Ingest each batch and run analytics
         for (int batchId = 0; batchId < args.numBatches; ++batchId)
         {
@@ -181,18 +182,18 @@ int main(int argc, char *argv[]) {
                 {
                     int64_t modified_after = dataset->getTimestampForWindow(batchId, args.windowSize);
                     cerr << "Deleting edges older than " << modified_after << "\n";
-                    Hooks::getInstance().region_begin("deletions", trial);
+                    Hooks::getInstance().region_begin("deletions");
                     deleteEdges(modified_after, g);
-                    Hooks::getInstance().region_end("deletions", trial);
+                    Hooks::getInstance().region_end("deletions");
                 }
                 synchronize(pg);
             }
 
             // Batch insertion
             if (process_id(pg) == 0) { cerr << "Loading batch " << batchId << "...\n"; }
-            Hooks::getInstance().region_begin("insertions", trial);
+            Hooks::getInstance().region_begin("insertions");
             insertBatch(dataset->getBatch(batchId), g, max_num_vertices);
-            Hooks::getInstance().region_end("insertions", trial);
+            Hooks::getInstance().region_end("insertions");
 
             synchronize(pg);
 
@@ -203,9 +204,9 @@ int main(int argc, char *argv[]) {
             // Algorithm
             for (string algName : split(args.algName, ' '))
             {
-                Hooks::getInstance().region_begin(algName, trial);
+                Hooks::getInstance().region_begin(algName);
                 runAlgorithm(algName, g, trial);
-                Hooks::getInstance().region_end(algName, trial);
+                Hooks::getInstance().region_end(algName);
             }
         }
     }

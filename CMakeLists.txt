@@ -2,7 +2,10 @@ cmake_minimum_required (VERSION 2.8.12)
 project (BOOST-DYNOGRAPH)
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake")
 
-include(cotire)
+# Cotire speeds up the build by using precompiled headers
+# But it can't figure out the hack that replaces iteration_macros.hpp
+# So we can't use it anymore
+#include(cotire)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall")
 
@@ -53,4 +56,4 @@ target_link_libraries(boost-dynograph
     ${MPI_CXX_LIBRARIES}
 )
 # Enable precompiled headers
-cotire(boost-dynograph)
+#cotire(boost-dynograph)

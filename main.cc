@@ -1,9 +1,8 @@
-#include "graph_config.h"
+#include "boost_algs.h"
 
 #include <dynograph_util.hh>
 #include "distributed_dataset.h"
 #include <hooks.h>
-#include "boost_algs.h"
 
 #include <chrono>
 #include <sstream>

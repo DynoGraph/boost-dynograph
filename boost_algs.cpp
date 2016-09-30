@@ -3,7 +3,6 @@
 //
 
 #include "boost_algs.h"
-
 #include <boost/graph/distributed/page_rank.hpp>
 #include <boost/graph/distributed/betweenness_centrality.hpp>
 #include <boost/graph/distributed/connected_components_parallel_search.hpp>

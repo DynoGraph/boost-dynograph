@@ -15,21 +15,12 @@ using std::string;
 using std::cerr;
 
 //std::vector<VertexId> bfsRoots = {3, 30, 300, 4, 40, 400};
-std::vector<string> algs = {"all", "bc", "cc", "gc", "sssp", "pagerank"};
 
 void runAlgorithm(string algName, Graph &g, int64_t trial)
 {
     if (g.process_group().rank == 0) { cerr << "Running " << algName << "...\n"; }
 
-    if (algName == "all")
-    {
-        for (string alg : algs)
-        {
-            runAlgorithm(alg, g, trial);
-        }
-    }
-
-    else if (algName == "bc")
+    if (algName == "bc")
     {
         std::vector<int64_t> local_centrality_vec(boost::num_vertices(g), 0);
         boost::brandes_betweenness_centrality(

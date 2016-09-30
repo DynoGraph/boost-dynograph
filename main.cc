@@ -72,6 +72,7 @@ void insertBatch(DynoGraph::Batch batch, Graph &g, Graph::vertices_size_type max
     for (DynoGraph::Edge e : batch)
     {
         assert(e.src < max_nv && e.dst < max_nv);
+        Hooks::getInstance().traverse_edge();
         VertexId Src = boost::vertex(e.src, g);
         VertexId Dst = boost::vertex(e.dst, g);
         // Try to insert the edge

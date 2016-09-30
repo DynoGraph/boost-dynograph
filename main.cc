@@ -204,7 +204,7 @@ int main(int argc, char *argv[]) {
             for (string algName : split(args.algName, ' '))
             {
                 Hooks::getInstance().region_begin(algName);
-                runAlgorithm(algName, g, trial);
+                runAlgorithm(algName, g, max_num_vertices, trial);
                 Hooks::getInstance().region_end(algName);
             }
         }

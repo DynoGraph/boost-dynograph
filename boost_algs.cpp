@@ -10,13 +10,14 @@
 #include <boost/graph/distributed/strong_components.hpp>
 #include <boost/graph/distributed/delta_stepping_shortest_paths.hpp>
 #include <boost/graph/distributed/boman_et_al_graph_coloring.hpp>
+#include <dynograph_util.hh>
 
 using std::string;
 using std::cerr;
 
 //std::vector<VertexId> bfsRoots = {3, 30, 300, 4, 40, 400};
 
-void runAlgorithm(string algName, Graph &g, int64_t trial)
+void runAlgorithm(string algName, Graph &g, Graph::vertices_size_type maxNumVertices, int64_t trial)
 {
     if (g.process_group().rank == 0) { cerr << "Running " << algName << "...\n"; }
 
@@ -27,6 +28,15 @@ void runAlgorithm(string algName, Graph &g, int64_t trial)
             g,
             make_iterator_property_map(local_centrality_vec.begin(), get(boost::vertex_index, g))
         );
+    }
+
+    else if (algName == "bfs")
+    {
+        DynoGraph::VertexPicker picker(maxNumVertices, 0);
+        auto source = boost::vertex(picker.next(), g);
+        if (source.owner == process_group(g).rank) {
+            boost::graph::breadth_first_search(g, source);
+        }
     }
 
     else if (algName == "cc")

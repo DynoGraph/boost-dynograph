@@ -169,12 +169,15 @@ int main(int argc, char *argv[]) {
     auto t2 = steady_clock::now();
     if (process_id(pg) == 0) { printTime("Graph pre-load", t2 - t1); }
 
+    Hooks& hooks = Hooks::getInstance();
+
     for (int64_t trial = 0; trial < args.numTrials; ++trial)
     {
-        Hooks::getInstance().trial = trial;
+        hooks.trial = trial;
         // Ingest each batch and run analytics
         for (int batchId = 0; batchId < args.numBatches; ++batchId)
         {
+            hooks.batch = batchId;
             // Deletions
             if (args.enableDeletions)
             {
@@ -182,18 +185,18 @@ int main(int argc, char *argv[]) {
                 {
                     int64_t modified_after = dataset->getTimestampForWindow(batchId, args.windowSize);
                     cerr << "Deleting edges older than " << modified_after << "\n";
-                    Hooks::getInstance().region_begin("deletions");
+                    hooks.region_begin("deletions");
                     deleteEdges(modified_after, g);
-                    Hooks::getInstance().region_end("deletions");
+                    hooks.region_end("deletions");
                 }
                 synchronize(pg);
             }
 
             // Batch insertion
             if (process_id(pg) == 0) { cerr << "Loading batch " << batchId << "...\n"; }
-            Hooks::getInstance().region_begin("insertions");
+            hooks.region_begin("insertions");
             insertBatch(dataset->getBatch(batchId), g, max_num_vertices);
-            Hooks::getInstance().region_end("insertions");
+            hooks.region_end("insertions");
 
             synchronize(pg);
 
@@ -204,9 +207,9 @@ int main(int argc, char *argv[]) {
             // Algorithm
             for (string algName : split(args.algName, ' '))
             {
-                Hooks::getInstance().region_begin(algName);
+                hooks.region_begin(algName);
                 runAlgorithm(algName, g, max_num_vertices, trial);
-                Hooks::getInstance().region_end(algName);
+                hooks.region_end(algName);
             }
         }
     }

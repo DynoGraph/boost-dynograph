@@ -33,7 +33,9 @@ void runAlgorithm(string algName, Graph &g, Graph::vertices_size_type maxNumVert
     else if (algName == "bfs")
     {
         DynoGraph::VertexPicker picker(maxNumVertices, 0);
-        auto source = boost::vertex(picker.next(), g);
+        VertexId source;
+        do { source = boost::vertex(picker.next(), g);}
+        while (boost::out_degree(source, g) == 0);
         if (source.owner == process_group(g).rank) {
             boost::graph::breadth_first_search(g, source);
         }
@@ -61,9 +63,13 @@ void runAlgorithm(string algName, Graph &g, Graph::vertices_size_type maxNumVert
     {
         std::vector<int> local_distance_vec(boost::num_vertices(g));
         std::vector<VertexId> local_predecessor_vec(boost::num_vertices(g));
+        DynoGraph::VertexPicker picker(maxNumVertices, 0);
+        VertexId source;
+        do { source = boost::vertex(picker.next(), g);}
+        while (boost::out_degree(source, g) == 0);
         boost::graph::distributed::delta_stepping_shortest_paths(
             g,
-            vertex(0, g), // TODO pick deterministic random vertex
+            source,
             make_iterator_property_map(local_predecessor_vec.begin(), get(boost::vertex_index, g)),
             make_iterator_property_map(local_distance_vec.begin(), get(boost::vertex_index, g)),
             get(boost::edge_weight, g)

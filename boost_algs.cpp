@@ -15,7 +15,26 @@
 using std::string;
 using std::cerr;
 
-//std::vector<VertexId> bfsRoots = {3, 30, 300, 4, 40, 400};
+VertexId
+pickSource(Graph &g, Graph::vertices_size_type maxNumVertices)
+{
+    DynoGraph::VertexPicker picker(maxNumVertices, 0);
+    VertexId source;
+    Graph::degree_size_type degree;
+    boost::mpi::communicator comm = communicator(process_group(g));
+    do {
+        int64_t source_id = picker.next();
+        source = boost::vertex(source_id, g);
+        if (source.owner == comm.rank()) {
+            degree = boost::out_degree(source, g);
+            boost::mpi::broadcast(comm, degree, source.owner);
+        } else {
+            boost::mpi::broadcast(comm, degree, source.owner);
+        }
+    }
+    while (degree == 0);
+    return source;
+}
 
 void runAlgorithm(string algName, Graph &g, Graph::vertices_size_type maxNumVertices, int64_t trial)
 {
@@ -32,13 +51,8 @@ void runAlgorithm(string algName, Graph &g, Graph::vertices_size_type maxNumVert
 
     else if (algName == "bfs")
     {
-        DynoGraph::VertexPicker picker(maxNumVertices, 0);
-        VertexId source;
-        do { source = boost::vertex(picker.next(), g);}
-        while (boost::out_degree(source, g) == 0);
-        if (source.owner == process_group(g).rank) {
-            boost::graph::breadth_first_search(g, source);
-        }
+        VertexId source = pickSource(g, maxNumVertices);
+        boost::graph::breadth_first_search(g, source);
     }
 
     else if (algName == "cc")
@@ -63,10 +77,7 @@ void runAlgorithm(string algName, Graph &g, Graph::vertices_size_type maxNumVert
     {
         std::vector<int> local_distance_vec(boost::num_vertices(g));
         std::vector<VertexId> local_predecessor_vec(boost::num_vertices(g));
-        DynoGraph::VertexPicker picker(maxNumVertices, 0);
-        VertexId source;
-        do { source = boost::vertex(picker.next(), g);}
-        while (boost::out_degree(source, g) == 0);
+        VertexId source = pickSource(g, maxNumVertices);
         boost::graph::distributed::delta_stepping_shortest_paths(
             g,
             source,

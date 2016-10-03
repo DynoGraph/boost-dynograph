@@ -1,2 +1,15 @@
+# build directory
 build
+# Generated from graph_config.in, so technically part of the build even if it doesn't end up there.
 graph_config.h
+
+# CLion project files
+.idea/
+# CTags
+.tags
+.tags_sorted_by_file
+# Sublime text project files
+*.sublime-project
+*.sublime-workspace
+# Netbeans project files
+nbproject/

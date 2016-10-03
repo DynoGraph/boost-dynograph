@@ -208,7 +208,7 @@ int main(int argc, char *argv[]) {
             for (string algName : split(args.algName, ' '))
             {
                 hooks.region_begin(algName);
-                runAlgorithm(algName, g, max_num_vertices, trial);
+                runAlgorithm(algName, g, max_num_vertices);
                 hooks.region_end(algName);
             }
         }

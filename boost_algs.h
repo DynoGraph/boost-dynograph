@@ -13,6 +13,6 @@
 #include <string>
 #include <inttypes.h>
 
-void runAlgorithm(std::string algName, Graph &g, Graph::vertices_size_type maxNumVertices, int64_t trial);
+void runAlgorithm(std::string algName, Graph &g, Graph::vertices_size_type maxNumVertices);
 
 #endif //BOOST_DYNOGRAPH_BOOST_ALGS_H

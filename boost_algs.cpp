@@ -55,7 +55,7 @@ private:
     DistanceMap distance;
 };
 
-void runAlgorithm(string algName, Graph &g, Graph::vertices_size_type maxNumVertices, int64_t trial)
+void runAlgorithm(string algName, Graph &g, Graph::vertices_size_type maxNumVertices)
 {
     if (g.process_group().rank == 0) { cerr << "Running " << algName << "...\n"; }
 

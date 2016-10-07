@@ -51,11 +51,12 @@ getArgs(int argc, char **argv)
     args.numTrials = atoll(argv[5]);
     args.maxNumVertices = atoll(argv[6]);
 
-    if (args.windowSize < 0)
+    if (args.windowSize == args.numBatches)
     {
+        args.enableDeletions = 0;
+    } else {
         args.enableDeletions = 1;
-        args.windowSize = -args.windowSize;
-    } else { args.enableDeletions = 0; }
+    }
     if (args.numBatches < 1 || args.windowSize < 1 || args.numTrials < 1 || args.maxNumVertices < 1)
     {
         cerr << "num_batches, window_size, num_trials, and max_nv must be positive\n";
@@ -181,14 +182,12 @@ int main(int argc, char *argv[]) {
             // Deletions
             if (args.enableDeletions)
             {
-                if (process_id(pg) == 0)
-                {
-                    int64_t modified_after = dataset->getTimestampForWindow(batchId, args.windowSize);
-                    cerr << "Deleting edges older than " << modified_after << "\n";
-                    hooks.region_begin("deletions");
-                    deleteEdges(modified_after, g);
-                    hooks.region_end("deletions");
-                }
+                int64_t modified_after = dataset->getTimestampForWindow(batchId, args.windowSize);
+                if (process_id(pg) == 0) { cerr << DynoGraph::msg << "Deleting edges older than " << modified_after << "\n"; }
+                hooks.region_begin("deletions");
+                deleteEdges(modified_after, g);
+                hooks.region_end("deletions");
+
                 synchronize(pg);
             }
 

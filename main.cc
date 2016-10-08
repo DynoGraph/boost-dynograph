@@ -209,6 +209,7 @@ int main(int argc, char *argv[]) {
                 hooks.region_begin(algName);
                 runAlgorithm(algName, g, max_num_vertices);
                 hooks.region_end(algName);
+                synchronize(pg);
             }
         }
     }

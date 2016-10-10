@@ -13,10 +13,13 @@ DynoGraph::loadDatasetDistributed(std::string path, int64_t numBatches, boost::m
 {
     // Rank 0 loads the whole dataset first
     std::unique_ptr<Dataset> dataset;
+    int64_t max_nv;
     if (comm.rank() == 0)
     {
         dataset = std::unique_ptr<Dataset>(new Dataset(path, numBatches));
+        max_nv = dataset->getMaxNumVertices();
     }
+    boost::mpi::broadcast(comm, max_nv, 0);
 
     /*
      * Now We need to distribute the Dataset to each process in the group
@@ -53,5 +56,5 @@ DynoGraph::loadDatasetDistributed(std::string path, int64_t numBatches, boost::m
     }
 
     // Finally we construct a dataset for this process using the local set of edges
-    return std::unique_ptr<Dataset>(new Dataset(myEdges, numBatches));
+    return std::unique_ptr<Dataset>(new Dataset(myEdges, numBatches, max_nv));
 }

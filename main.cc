@@ -155,13 +155,8 @@ int main(int argc, char *argv[]) {
     // Parse the command line
     Args args = getArgs(argc, argv);
 
-    // Create the graph
-    // TODO use a round-robin distribution strategy, then over-provision based on available memory|
-    Graph::vertices_size_type max_num_vertices = static_cast<Graph::vertices_size_type>(args.maxNumVertices);
-    Graph g(max_num_vertices, pg);
-
     // Pre-load the edge batches
-    if (process_id(pg) == 0) { cerr << "Pre-loading " << args.inputPath << " from disk...\n"; }
+    if (process_id(pg) == 0) { cerr << DynoGraph::msg << "Pre-loading " << args.inputPath << " from disk...\n"; }
     auto t1 = steady_clock::now();
 
     unique_ptr<DynoGraph::Dataset> dataset = DynoGraph::loadDatasetDistributed(
@@ -169,6 +164,11 @@ int main(int argc, char *argv[]) {
 
     auto t2 = steady_clock::now();
     if (process_id(pg) == 0) { printTime("Graph pre-load", t2 - t1); }
+
+    // Create the graph
+    // TODO use a round-robin distribution strategy, then over-provision based on available memory|
+    Graph::vertices_size_type max_num_vertices = static_cast<Graph::vertices_size_type>(dataset->getMaxNumVertices());
+    Graph g(max_num_vertices, pg);
 
     Hooks& hooks = Hooks::getInstance();
 

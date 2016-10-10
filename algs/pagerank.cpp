@@ -1,7 +1,7 @@
 #include "../boost_algs.h"
 #include <boost/graph/distributed/page_rank.hpp>
 
-void run_pagerank(Graph &g, Graph::vertices_size_type nv)
+void run_pagerank(Graph &g)
 {
     std::vector<double> vertexRanks(num_vertices(g));
     std::vector<double> vertexRanks2(num_vertices(g));

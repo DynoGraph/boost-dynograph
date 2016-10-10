@@ -4,6 +4,7 @@
 
 #include "boost_algs.h"
 #include <dynograph_util.hh>
+#include <hooks.h>
 
 using std::string;
 using std::cerr;
@@ -33,15 +34,24 @@ void runAlgorithm(string algName, Graph &g, Graph::vertices_size_type nv)
 {
     if (g.process_group().rank == 0) { cerr << "Running " << algName << "...\n"; }
 
-    if      (algName == "bc")  { run_bc(g, nv);  }
-    else if (algName == "bfs") { run_bfs(g, nv); }
-    else if (algName == "cc")  { run_cc(g, nv); }
-    else if (algName == "gc")  { run_gc(g, nv); }
-    else if (algName == "pagerank") { run_pagerank(g, nv); }
-    else if (algName == "sssp"){ run_sssp(g, nv); }
+    VertexId source;
+    if (algName == "bfs" || algName == "sssp")
+    {
+        source = pickSource(g, nv);
+    }
+
+    Hooks& hooks = Hooks::getInstance();
+    hooks.region_begin(algName);
+    if      (algName == "bc")  { run_bc(g);  }
+    else if (algName == "bfs") { run_bfs(g, source); }
+    else if (algName == "cc")  { run_cc(g); }
+    else if (algName == "gc")  { run_gc(g); }
+    else if (algName == "pagerank") { run_pagerank(g); }
+    else if (algName == "sssp"){ run_sssp(g, source); }
     else
     {
         if (g.process_group().rank == 0) { cerr << "Algorithm " << algName << " not implemented!\n"; }
         exit(-1);
     }
+    hooks.region_end(algName);
 }

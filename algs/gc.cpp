@@ -1,7 +1,7 @@
 #include "../boost_algs.h"
 #include <boost/graph/distributed/boman_et_al_graph_coloring.hpp>
 
-void run_gc(Graph &g, Graph::vertices_size_type nv)
+void run_gc(Graph &g)
 {
     std::vector<int> local_color_vec(boost::num_vertices(g));
     boost::graph::boman_et_al_graph_coloring(

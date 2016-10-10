@@ -21,9 +21,8 @@ private:
     DistanceMap distance;
 };
 
-void run_bfs(Graph &g, Graph::vertices_size_type nv)
+void run_bfs(Graph &g, VertexId source)
 {
-    VertexId source = pickSource(g, nv);
     std::vector<int> local_distance_vec(boost::num_vertices(g));
     auto distance_map = make_iterator_property_map(local_distance_vec.begin(), get(boost::vertex_index, g));
     bfs_discovery_visitor<decltype(distance_map)> visitor(distance_map);

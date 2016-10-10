@@ -1,11 +1,10 @@
 #include "../boost_algs.h"
 #include <boost/graph/distributed/delta_stepping_shortest_paths.hpp>
 
-void run_sssp(Graph &g, Graph::vertices_size_type nv)
+void run_sssp(Graph &g, VertexId source)
 {
     std::vector<int> local_distance_vec(boost::num_vertices(g));
     std::vector<VertexId> local_predecessor_vec(boost::num_vertices(g));
-    VertexId source = pickSource(g, nv);
     boost::graph::distributed::delta_stepping_shortest_paths(
         g,
         source,

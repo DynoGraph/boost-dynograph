@@ -16,12 +16,12 @@
 VertexId pickSource(Graph &g, Graph::vertices_size_type nv);
 void runAlgorithm(std::string algName, Graph &g, Graph::vertices_size_type nv);
 
-void run_bc(Graph &g, Graph::vertices_size_type nv);
-void run_bfs(Graph &g, Graph::vertices_size_type nv);
-void run_cc(Graph &g, Graph::vertices_size_type nv);
-void run_gc(Graph &g, Graph::vertices_size_type nv);
-void run_sssp(Graph &g, Graph::vertices_size_type nv);
-void run_pagerank(Graph &g, Graph::vertices_size_type nv);
+void run_bc(Graph &g);
+void run_bfs(Graph &g, VertexId source);
+void run_cc(Graph &g);
+void run_gc(Graph &g);
+void run_sssp(Graph &g, VertexId source);
+void run_pagerank(Graph &g);
 
 
 #endif //BOOST_DYNOGRAPH_BOOST_ALGS_H

@@ -31,16 +31,15 @@ struct Args
     int64_t numBatches;
     int64_t numTrials;
     int64_t enableDeletions;
-    int64_t maxNumVertices;
 };
 
 Args
 getArgs(int argc, char **argv)
 {
     Args args;
-    if (argc != 7)
+    if (argc != 6)
     {
-        cerr << "Usage: alg_name input_path num_batches window_size num_trials max_nv \n";
+        cerr << "Usage: alg_name input_path num_batches window_size num_trials \n";
         exit(-1);
     }
 
@@ -49,7 +48,6 @@ getArgs(int argc, char **argv)
     args.numBatches = atoll(argv[3]);
     args.windowSize = atoll(argv[4]);
     args.numTrials = atoll(argv[5]);
-    args.maxNumVertices = atoll(argv[6]);
 
     if (args.windowSize == args.numBatches)
     {
@@ -57,9 +55,9 @@ getArgs(int argc, char **argv)
     } else {
         args.enableDeletions = 1;
     }
-    if (args.numBatches < 1 || args.windowSize < 1 || args.numTrials < 1 || args.maxNumVertices < 1)
+    if (args.numBatches < 1 || args.windowSize < 1 || args.numTrials < 1)
     {
-        cerr << "num_batches, window_size, num_trials, and max_nv must be positive\n";
+        cerr << "num_batches, window_size, and num_trials must be positive\n";
         exit(-1);
     }
 

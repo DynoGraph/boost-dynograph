@@ -9,14 +9,14 @@ using namespace DynoGraph;
 using std::vector;
 
 std::unique_ptr<Dataset>
-DynoGraph::loadDatasetDistributed(std::string path, int64_t numBatches, boost::mpi::communicator comm)
+DynoGraph::loadDatasetDistributed(Args args, boost::mpi::communicator comm)
 {
     // Rank 0 loads the whole dataset first
     std::unique_ptr<Dataset> dataset;
     int64_t max_nv;
     if (comm.rank() == 0)
     {
-        dataset = std::unique_ptr<Dataset>(new Dataset(path, numBatches));
+        dataset = std::unique_ptr<Dataset>(new Dataset(args));
         max_nv = dataset->getMaxNumVertices();
     }
     boost::mpi::broadcast(comm, max_nv, 0);
@@ -28,7 +28,7 @@ DynoGraph::loadDatasetDistributed(std::string path, int64_t numBatches, boost::m
      */
     //
     vector<Edge> myEdges; // TODO reserve storage in advance
-    for (int batchId = 0; batchId < numBatches; ++batchId)
+    for (int batchId = 0; batchId < args.num_batches; ++batchId)
     {
         vector<vector<Edge>> dividedBatch(comm.size());
         if (comm.rank() == 0)
@@ -56,5 +56,5 @@ DynoGraph::loadDatasetDistributed(std::string path, int64_t numBatches, boost::m
     }
 
     // Finally we construct a dataset for this process using the local set of edges
-    return std::unique_ptr<Dataset>(new Dataset(myEdges, numBatches, max_nv));
+    return std::unique_ptr<Dataset>(new Dataset(myEdges, args.num_batches, max_nv));
 }

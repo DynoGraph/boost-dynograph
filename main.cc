@@ -23,48 +23,6 @@ void printTime(string stepDesc, duration<double, std::milli> diff)
     cerr << stepDesc << ": " << diff.count() << " ms.\n";
 }
 
-struct Args
-{
-    string algName;
-    string inputPath;
-    int64_t windowSize;
-    int64_t numBatches;
-    int64_t numTrials;
-    int64_t enableDeletions;
-};
-
-Args
-getArgs(int argc, char **argv)
-{
-    Args args;
-    if (argc != 6)
-    {
-        cerr << "Usage: alg_name input_path num_batches window_size num_trials \n";
-        exit(-1);
-    }
-
-    args.algName = argv[1];
-    args.inputPath = argv[2];
-    args.numBatches = atoll(argv[3]);
-    args.windowSize = atoll(argv[4]);
-    args.numTrials = atoll(argv[5]);
-
-    if (args.windowSize == args.numBatches)
-    {
-        args.enableDeletions = 0;
-    } else {
-        args.enableDeletions = 1;
-    }
-    if (args.numBatches < 1 || args.windowSize < 1 || args.numTrials < 1)
-    {
-        cerr << "num_batches, window_size, and num_trials must be positive\n";
-        exit(-1);
-    }
-
-
-    return args;
-}
-
 void insertBatch(DynoGraph::Batch batch, Graph &g, Graph::vertices_size_type max_nv)
 {
     for (DynoGraph::Edge e : batch)
@@ -152,14 +110,13 @@ int main(int argc, char *argv[]) {
     cerr << std::nounitbuf;
 
     // Parse the command line
-    Args args = getArgs(argc, argv);
+    DynoGraph::Args args(argc, argv);
 
     // Pre-load the edge batches
-    if (process_id(pg) == 0) { cerr << DynoGraph::msg << "Pre-loading " << args.inputPath << " from disk...\n"; }
+    if (process_id(pg) == 0) { cerr << DynoGraph::msg << "Pre-loading " << args.input_path << " from disk...\n"; }
     auto t1 = steady_clock::now();
 
-    unique_ptr<DynoGraph::Dataset> dataset = DynoGraph::loadDatasetDistributed(
-            args.inputPath, args.numBatches, communicator(pg));
+    unique_ptr<DynoGraph::Dataset> dataset = DynoGraph::loadDatasetDistributed(args, communicator(pg));
 
     auto t2 = steady_clock::now();
     if (process_id(pg) == 0) { printTime("Graph pre-load", t2 - t1); }
@@ -171,17 +128,17 @@ int main(int argc, char *argv[]) {
 
     Hooks& hooks = Hooks::getInstance();
 
-    for (int64_t trial = 0; trial < args.numTrials; ++trial)
+    for (int64_t trial = 0; trial < args.num_trials; ++trial)
     {
         hooks.trial = trial;
         // Ingest each batch and run analytics
-        for (int batchId = 0; batchId < args.numBatches; ++batchId)
+        for (int batchId = 0; batchId < args.num_batches; ++batchId)
         {
             hooks.batch = batchId;
             // Deletions
-            if (args.enableDeletions)
+            if (args.enable_deletions)
             {
-                int64_t modified_after = dataset->getTimestampForWindow(batchId, args.windowSize);
+                int64_t modified_after = dataset->getTimestampForWindow(batchId, args.window_size);
                 if (process_id(pg) == 0) { cerr << DynoGraph::msg << "Deleting edges older than " << modified_after << "\n"; }
                 hooks.region_begin("deletions");
                 deleteEdges(modified_after, g);
@@ -203,7 +160,7 @@ int main(int argc, char *argv[]) {
                  << "\"num_edges\":"    << num_edges(g) << "}\n";
 
             // Algorithm
-            for (string algName : split(args.algName, ' '))
+            for (string algName : split(args.alg_name, ' '))
             {
                 runAlgorithm(algName, g, max_num_vertices);
                 synchronize(pg);

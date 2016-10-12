@@ -17,6 +17,6 @@ BOOST_IS_BITWISE_SERIALIZABLE(DynoGraph::Edge)
 namespace DynoGraph
 {
 std::unique_ptr<Dataset>
-loadDatasetDistributed(std::string path, int64_t numBatches, boost::mpi::communicator comm);
+loadDatasetDistributed(DynoGraph::Args args, boost::mpi::communicator comm);
 }
 #endif //BOOST_DYNOGRAPH_DISTRIBUTEDDATASET_H

@@ -14,7 +14,7 @@
 
 #ifndef BOOST_GRAPH_ITERATION_MACROS_HPP
 #define BOOST_GRAPH_ITERATION_MACROS_HPP
-#warning "Including modified iteration_macros.hpp"
+//#warning "Including modified iteration_macros.hpp"
 
 
 #include <utility>

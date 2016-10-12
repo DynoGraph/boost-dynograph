@@ -10,7 +10,7 @@
 //
 #ifndef BOOST_GRAPH_BREADTH_FIRST_SEARCH_HPP
 #define BOOST_GRAPH_BREADTH_FIRST_SEARCH_HPP
-#warning "Including modified breadth_first_search.hpp"
+//#warning "Including modified breadth_first_search.hpp"
 #include <edge_count.h>
 #define BOOST_GRAPH_USE_MPI 1
 

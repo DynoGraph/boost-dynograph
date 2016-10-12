@@ -23,7 +23,7 @@ void printTime(string stepDesc, duration<double, std::milli> diff)
     cerr << stepDesc << ": " << diff.count() << " ms.\n";
 }
 
-void insertBatch(DynoGraph::Batch batch, Graph &g, Graph::vertices_size_type max_nv)
+void insertBatch(DynoGraph::Batch& batch, Graph &g, Graph::vertices_size_type max_nv)
 {
     for (DynoGraph::Edge e : batch)
     {
@@ -135,10 +135,15 @@ int main(int argc, char *argv[]) {
         for (int batchId = 0; batchId < args.num_batches; ++batchId)
         {
             hooks.batch = batchId;
+
+            hooks.region_begin("preprocess");
+            DynoGraph::Batch& batch = *dataset->getBatch(batchId);
+            hooks.region_end("preprocess");
+
             // Deletions
             if (args.enable_deletions)
             {
-                int64_t modified_after = dataset->getTimestampForWindow(batchId, args.window_size);
+                int64_t modified_after = dataset->getTimestampForWindow(batchId);
                 if (process_id(pg) == 0) { cerr << DynoGraph::msg << "Deleting edges older than " << modified_after << "\n"; }
                 hooks.region_begin("deletions");
                 deleteEdges(modified_after, g);
@@ -150,7 +155,7 @@ int main(int argc, char *argv[]) {
             // Batch insertion
             if (process_id(pg) == 0) { cerr << "Loading batch " << batchId << "...\n"; }
             hooks.region_begin("insertions");
-            insertBatch(dataset->getBatch(batchId), g, max_num_vertices);
+            insertBatch(batch, g, max_num_vertices);
             hooks.region_end("insertions");
 
             synchronize(pg);

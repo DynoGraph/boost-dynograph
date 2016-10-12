@@ -161,6 +161,8 @@ int main(int argc, char *argv[]) {
             synchronize(pg);
 
             cout << "{\"pid\":"         << process_id(pg) << ","
+                 << "\"trial\":"        << trial << ","
+                 << "\"batchId\":"      << batchId << ","
                  << "\"num_vertices\":" << num_vertices(g) << ","
                  << "\"num_edges\":"    << num_edges(g) << "}\n";
 

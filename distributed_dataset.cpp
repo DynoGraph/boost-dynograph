@@ -56,5 +56,5 @@ DynoGraph::loadDatasetDistributed(Args args, boost::mpi::communicator comm)
     }
 
     // Finally we construct a dataset for this process using the local set of edges
-    return std::unique_ptr<Dataset>(new Dataset(myEdges, *dataset));
+    return std::unique_ptr<Dataset>(new Dataset(myEdges, args, max_nv));
 }

@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
             hooks.batch = batchId;
 
             hooks.region_begin("preprocess");
-            DynoGraph::Batch& batch = *dataset->getBatch(batchId);
+            unique_ptr<DynoGraph::Batch> batch = dataset->getBatch(batchId);
             hooks.region_end("preprocess");
 
             // Deletions
@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
             // Batch insertion
             if (process_id(pg) == 0) { cerr << "Loading batch " << batchId << "...\n"; }
             hooks.region_begin("insertions");
-            insertBatch(batch, g, max_num_vertices);
+            insertBatch(*batch, g, max_num_vertices);
             hooks.region_end("insertions");
 
             synchronize(pg);

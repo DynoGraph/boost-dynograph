@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
 
             cout << "{\"pid\":"         << process_id(pg) << ","
                  << "\"trial\":"        << trial << ","
-                 << "\"batchId\":"      << batchId << ","
+                 << "\"batch\":"        << batchId << ","
                  << "\"num_vertices\":" << num_vertices(g) << ","
                  << "\"num_edges\":"    << num_edges(g) << "}\n";
 

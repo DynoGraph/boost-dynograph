@@ -172,6 +172,12 @@ int main(int argc, char *argv[]) {
                 runAlgorithm(algName, g, max_num_vertices);
                 synchronize(pg);
             }
+
+            if (args.sort_mode == DynoGraph::Args::SNAPSHOT)
+            {
+                g.clear();
+                synchronize(pg);
+            }
         }
     }
 

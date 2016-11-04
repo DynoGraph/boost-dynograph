@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
             hooks.batch = batchId;
 
             hooks.region_begin("preprocess");
-            unique_ptr<DynoGraph::Batch> batch = dataset->getBatch(batchId);
+            auto batch = dataset->getBatch(batchId);
             hooks.region_end("preprocess");
 
             // Deletions

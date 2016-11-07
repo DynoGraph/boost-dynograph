@@ -139,6 +139,7 @@ int main(int argc, char *argv[]) {
             hooks.region_begin("preprocess");
             auto batch = dataset->getBatch(batchId);
             hooks.region_end("preprocess");
+            synchronize(pg);
 
             // Deletions
             if (args.enable_deletions)

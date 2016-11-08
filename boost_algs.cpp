@@ -53,5 +53,5 @@ void runAlgorithm(string algName, Graph &g, Graph::vertices_size_type nv)
         if (g.process_group().rank == 0) { cerr << "Algorithm " << algName << " not implemented!\n"; }
         exit(-1);
     }
-    hooks.region_end(algName);
+    hooks.region_end();
 }

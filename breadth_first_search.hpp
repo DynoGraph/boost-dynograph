@@ -11,7 +11,7 @@
 #ifndef BOOST_GRAPH_BREADTH_FIRST_SEARCH_HPP
 #define BOOST_GRAPH_BREADTH_FIRST_SEARCH_HPP
 //#warning "Including modified breadth_first_search.hpp"
-#include <edge_count.h>
+#include <hooks_c.h>
 #define BOOST_GRAPH_USE_MPI 1
 
 /*
@@ -81,7 +81,6 @@ namespace boost {
     while (! Q.empty()) {
       Vertex u = Q.top(); Q.pop();            vis.examine_vertex(u, g);
       for (boost::tie(ei, ei_end) = out_edges(u, g); ei != ei_end; ++ei) {
-        traverse_edge(1);
         Vertex v = target(*ei, g);            vis.examine_edge(*ei, g);
         ColorValue v_color = get(color, v);
         if (v_color == Color::white()) {      vis.tree_edge(*ei, g);
@@ -92,6 +91,8 @@ namespace boost {
           else                                vis.black_target(*ei, g);
         }
       } // end for
+      boost::tie(ei, ei_end) = out_edges(u, g);
+      hooks_traverse_edges(distance(ei, ei_end));
       put(color, u, Color::black());          vis.finish_vertex(u, g);
     } // end while
   } // breadth_first_visit

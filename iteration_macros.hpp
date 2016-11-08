@@ -1,7 +1,7 @@
 // HACK
 // This file replaces boost/graph/iteration_macros.hpp from Boost
 
-#include <edge_count.h>
+#include <hooks_c.h>
 
 //=======================================================================
 // Copyright 2001 Indiana University
@@ -86,7 +86,7 @@ for (std::pair<typename boost::graph_traits<GraphType>::edge_iterator, \
   BGL_FIRST(__LINE__) != BGL_LAST(__LINE__); BGL_FIRST(__LINE__) = BGL_LAST(__LINE__)) \
   for (typename boost::graph_traits<GraphType>::edge_descriptor ENAME; \
     BGL_FIRST(__LINE__) != BGL_LAST(__LINE__) ? (ENAME = *BGL_FIRST(__LINE__), true):false; \
-     ++BGL_FIRST(__LINE__),traverse_edge(1))
+     ++BGL_FIRST(__LINE__),hooks_traverse_edges(1))
 
 #define BGL_FORALL_EDGES(ENAME, GNAME, GraphType) \
 for (std::pair<boost::graph_traits<GraphType>::edge_iterator, \
@@ -94,7 +94,7 @@ for (std::pair<boost::graph_traits<GraphType>::edge_iterator, \
   BGL_FIRST(__LINE__) != BGL_LAST(__LINE__); BGL_FIRST(__LINE__) = BGL_LAST(__LINE__)) \
   for (boost::graph_traits<GraphType>::edge_descriptor ENAME; \
      BGL_FIRST(__LINE__) != BGL_LAST(__LINE__) ? (ENAME = *BGL_FIRST(__LINE__), true):false; \
-     ++BGL_FIRST(__LINE__),traverse_edge(1))
+     ++BGL_FIRST(__LINE__),hooks_traverse_edges(1))
 
 #define BGL_FORALL_ADJ_T(UNAME, VNAME, GNAME, GraphType) \
 for (std::pair<typename boost::graph_traits<GraphType>::adjacency_iterator, \
@@ -102,7 +102,7 @@ for (std::pair<typename boost::graph_traits<GraphType>::adjacency_iterator, \
   BGL_FIRST(__LINE__) != BGL_LAST(__LINE__); BGL_FIRST(__LINE__) = BGL_LAST(__LINE__)) \
 for (typename boost::graph_traits<GraphType>::vertex_descriptor VNAME; \
   BGL_FIRST(__LINE__) != BGL_LAST(__LINE__) ? (VNAME = *BGL_FIRST(__LINE__), true) : false; \
-   ++BGL_FIRST(__LINE__),traverse_edge(1))
+   ++BGL_FIRST(__LINE__),hooks_traverse_edges(1))
 
 #define BGL_FORALL_ADJ(UNAME, VNAME, GNAME, GraphType) \
 for (std::pair<boost::graph_traits<GraphType>::adjacency_iterator, \
@@ -110,7 +110,7 @@ for (std::pair<boost::graph_traits<GraphType>::adjacency_iterator, \
   BGL_FIRST(__LINE__) != BGL_LAST(__LINE__); BGL_FIRST(__LINE__) = BGL_LAST(__LINE__)) \
 for (boost::graph_traits<GraphType>::vertex_descriptor VNAME; \
   BGL_FIRST(__LINE__) != BGL_LAST(__LINE__) ? (VNAME = *BGL_FIRST(__LINE__), true) : false; \
-   ++BGL_FIRST(__LINE__),traverse_edge(1))
+   ++BGL_FIRST(__LINE__),hooks_traverse_edges(1))
 
 #define BGL_FORALL_OUTEDGES_T(UNAME, ENAME, GNAME, GraphType) \
 for (std::pair<typename boost::graph_traits<GraphType>::out_edge_iterator, \
@@ -118,7 +118,7 @@ for (std::pair<typename boost::graph_traits<GraphType>::out_edge_iterator, \
   BGL_FIRST(__LINE__) != BGL_LAST(__LINE__); BGL_FIRST(__LINE__) = BGL_LAST(__LINE__)) \
 for (typename boost::graph_traits<GraphType>::edge_descriptor ENAME; \
   BGL_FIRST(__LINE__) != BGL_LAST(__LINE__) ? (ENAME = *BGL_FIRST(__LINE__), true) : false; \
-   ++BGL_FIRST(__LINE__),traverse_edge(1))
+   ++BGL_FIRST(__LINE__),hooks_traverse_edges(1))
 
 #define BGL_FORALL_OUTEDGES(UNAME, ENAME, GNAME, GraphType) \
 for (std::pair<boost::graph_traits<GraphType>::out_edge_iterator, \
@@ -126,7 +126,7 @@ for (std::pair<boost::graph_traits<GraphType>::out_edge_iterator, \
   BGL_FIRST(__LINE__) != BGL_LAST(__LINE__); BGL_FIRST(__LINE__) = BGL_LAST(__LINE__)) \
 for (boost::graph_traits<GraphType>::edge_descriptor ENAME; \
   BGL_FIRST(__LINE__) != BGL_LAST(__LINE__) ? (ENAME = *BGL_FIRST(__LINE__), true) : false; \
-   ++BGL_FIRST(__LINE__),traverse_edge(1))
+   ++BGL_FIRST(__LINE__),hooks_traverse_edges(1))
 
 #define BGL_FORALL_INEDGES_T(UNAME, ENAME, GNAME, GraphType) \
 for (std::pair<typename boost::graph_traits<GraphType>::in_edge_iterator, \
@@ -134,7 +134,7 @@ for (std::pair<typename boost::graph_traits<GraphType>::in_edge_iterator, \
   BGL_FIRST(__LINE__) != BGL_LAST(__LINE__); BGL_FIRST(__LINE__) = BGL_LAST(__LINE__)) \
 for (typename boost::graph_traits<GraphType>::edge_descriptor ENAME; \
   BGL_FIRST(__LINE__) != BGL_LAST(__LINE__) ? (ENAME = *BGL_FIRST(__LINE__), true) : false; \
-   ++BGL_FIRST(__LINE__),traverse_edge(1))
+   ++BGL_FIRST(__LINE__),hooks_traverse_edges(1))
 
 #define BGL_FORALL_INEDGES(UNAME, ENAME, GNAME, GraphType) \
 for (std::pair<boost::graph_traits<GraphType>::in_edge_iterator, \
@@ -142,6 +142,6 @@ for (std::pair<boost::graph_traits<GraphType>::in_edge_iterator, \
   BGL_FIRST(__LINE__) != BGL_LAST(__LINE__); BGL_FIRST(__LINE__) = BGL_LAST(__LINE__)) \
 for (boost::graph_traits<GraphType>::edge_descriptor ENAME; \
   BGL_FIRST(__LINE__) != BGL_LAST(__LINE__) ? (ENAME = *BGL_FIRST(__LINE__), true) : false; \
-   ++BGL_FIRST(__LINE__),traverse_edge(1))
+   ++BGL_FIRST(__LINE__),hooks_traverse_edges(1))
 
 #endif // BOOST_GRAPH_ITERATION_MACROS_HPP

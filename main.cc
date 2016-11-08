@@ -30,7 +30,7 @@ void insertBatch(DynoGraph::Batch& batch, Graph &g, Graph::vertices_size_type ma
         assert(e.src > 0 && e.dst > 0);
         assert(static_cast<Graph::vertices_size_type>(e.src) < max_nv);
         assert(static_cast<Graph::vertices_size_type>(e.dst) < max_nv);
-        Hooks::getInstance().traverse_edge();
+        Hooks::getInstance().traverse_edges(1);
         VertexId Src = boost::vertex(e.src, g);
         VertexId Dst = boost::vertex(e.dst, g);
         // Try to insert the edge
@@ -130,15 +130,15 @@ int main(int argc, char *argv[]) {
 
     for (int64_t trial = 0; trial < args.num_trials; ++trial)
     {
-        hooks.trial = trial;
+        hooks.set_attr("trial", trial);
         // Ingest each batch and run analytics
         for (int batchId = 0; batchId < args.num_batches; ++batchId)
         {
-            hooks.batch = batchId;
+            hooks.set_attr("batch", batchId);
 
             hooks.region_begin("preprocess");
             auto batch = dataset->getBatch(batchId);
-            hooks.region_end("preprocess");
+            hooks.region_end();
             synchronize(pg);
 
             // Deletions
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
                 if (process_id(pg) == 0) { cerr << DynoGraph::msg << "Deleting edges older than " << modified_after << "\n"; }
                 hooks.region_begin("deletions");
                 deleteEdges(modified_after, g);
-                hooks.region_end("deletions");
+                hooks.region_end();
 
                 synchronize(pg);
             }
@@ -157,15 +157,12 @@ int main(int argc, char *argv[]) {
             if (process_id(pg) == 0) { cerr << "Loading batch " << batchId << "...\n"; }
             hooks.region_begin("insertions");
             insertBatch(*batch, g, max_num_vertices);
-            hooks.region_end("insertions");
+            hooks.region_end();
 
             synchronize(pg);
 
-            cout << "{\"pid\":"         << process_id(pg) << ","
-                 << "\"trial\":"        << trial << ","
-                 << "\"batch\":"        << batchId << ","
-                 << "\"num_vertices\":" << num_vertices(g) << ","
-                 << "\"num_edges\":"    << num_edges(g) << "}\n";
+            hooks.set_attr("num_vertices", num_vertices(g));
+            hooks.set_attr("num_edges", num_edges(g));
 
             // Algorithm
             for (string algName : split(args.alg_name, ' '))

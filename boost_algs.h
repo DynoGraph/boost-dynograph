@@ -13,14 +13,14 @@
 #include <string>
 #include <inttypes.h>
 
-VertexId pickSource(Graph &g, Graph::vertices_size_type nv);
-void runAlgorithm(std::string algName, Graph &g, Graph::vertices_size_type nv);
+Vertex pickSource(Graph &g);
+void runAlgorithm(std::string algName, Graph &g);
 
 void run_bc(Graph &g);
-void run_bfs(Graph &g, VertexId source);
+void run_bfs(Graph &g, Vertex source);
 void run_cc(Graph &g);
 void run_gc(Graph &g);
-void run_sssp(Graph &g, VertexId source);
+void run_sssp(Graph &g, Vertex source);
 void run_pagerank(Graph &g);
 
 

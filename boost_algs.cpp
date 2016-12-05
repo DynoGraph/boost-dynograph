@@ -9,35 +9,42 @@
 using std::string;
 using std::cerr;
 
-VertexId
-pickSource(Graph &g, Graph::vertices_size_type nv)
+Vertex
+pickSource(Graph &g)
 {
-    DynoGraph::VertexPicker picker(nv, 0);
-    VertexId source;
-    Graph::degree_size_type degree;
+    // Find the vertex with the highest degree in this process
+    VertexId num = 1;
+    VertexId nv = num_vertices(g);
+    auto get_degree = [&g](VertexId i){
+        Vertex v = boost::vertex(i, g);
+        return boost::out_degree(v, g);
+    };
+    VertexId local_source = DynoGraph::find_high_degree_vertices(num, nv, get_degree)[0];
+
+    // Reduce to get the highest degree across all processes
+    auto compare = [get_degree](VertexId a, VertexId b) {
+        int64_t degree_a = get_degree(a);
+        int64_t degree_b = get_degree(b);
+        if (degree_a != degree_b) { return degree_a < degree_b; }
+        return a > b;
+    };
+    VertexId global_source;
     boost::mpi::communicator comm = communicator(process_group(g));
-    do {
-        int64_t source_id = picker.next();
-        source = boost::vertex(source_id, g);
-        if (source.owner == comm.rank()) {
-            degree = boost::out_degree(source, g);
-            boost::mpi::broadcast(comm, degree, source.owner);
-        } else {
-            boost::mpi::broadcast(comm, degree, source.owner);
-        }
-    }
-    while (degree == 0);
-    return source;
+    boost::mpi::reduce(comm, local_source, global_source, compare, 0);
+
+    // Broadcast to all processes
+    boost::mpi::broadcast(comm, global_source, 0);
+    return boost::vertex(global_source, g);
 }
 
-void runAlgorithm(string algName, Graph &g, Graph::vertices_size_type nv)
+void runAlgorithm(string algName, Graph &g)
 {
     if (g.process_group().rank == 0) { cerr << "Running " << algName << "...\n"; }
 
-    VertexId source;
+    Vertex source;
     if (algName == "bfs" || algName == "sssp")
     {
-        source = pickSource(g, nv);
+        source = pickSource(g);
     }
 
     Hooks& hooks = Hooks::getInstance();
@@ -53,5 +60,6 @@ void runAlgorithm(string algName, Graph &g, Graph::vertices_size_type nv)
         if (g.process_group().rank == 0) { cerr << "Algorithm " << algName << " not implemented!\n"; }
         exit(-1);
     }
+    synchronize(g);
     hooks.region_end();
 }

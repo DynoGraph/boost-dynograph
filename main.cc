@@ -31,8 +31,8 @@ void insertBatch(DynoGraph::Batch& batch, Graph &g, Graph::vertices_size_type ma
         assert(static_cast<Graph::vertices_size_type>(e.src) < max_nv);
         assert(static_cast<Graph::vertices_size_type>(e.dst) < max_nv);
         Hooks::getInstance().traverse_edges(1);
-        VertexId Src = boost::vertex(e.src, g);
-        VertexId Dst = boost::vertex(e.dst, g);
+        Vertex Src = boost::vertex(e.src, g);
+        Vertex Dst = boost::vertex(e.dst, g);
         // Try to insert the edge
         std::pair<Edge, bool> inserted_edge = boost::add_edge(
                 Src, Dst,
@@ -51,6 +51,7 @@ void insertBatch(DynoGraph::Batch& batch, Graph &g, Graph::vertices_size_type ma
         }
 
     }
+    synchronize(g);
 }
 
 void deleteEdges(int64_t threshold, Graph &g)
@@ -62,6 +63,7 @@ void deleteEdges(int64_t threshold, Graph &g)
             return get(boost::edge_timestamp, g, e) < threshold;
         }
     ,g);
+    synchronize(g);
 }
 
 void reportOwnership(Graph &g)
@@ -132,14 +134,13 @@ int main(int argc, char *argv[]) {
     {
         hooks.set_attr("trial", trial);
         // Ingest each batch and run analytics
-        for (int batchId = 0; batchId < args.num_batches; ++batchId)
+        for (int64_t batchId = 0; batchId < args.num_batches; ++batchId)
         {
             hooks.set_attr("batch", batchId);
 
             hooks.region_begin("preprocess");
             auto batch = dataset->getBatch(batchId);
             hooks.region_end();
-            synchronize(pg);
 
             // Deletions
             if (args.enable_deletions)
@@ -149,8 +150,6 @@ int main(int argc, char *argv[]) {
                 hooks.region_begin("deletions");
                 deleteEdges(modified_after, g);
                 hooks.region_end();
-
-                synchronize(pg);
             }
 
             // Batch insertion
@@ -159,22 +158,19 @@ int main(int argc, char *argv[]) {
             insertBatch(*batch, g, max_num_vertices);
             hooks.region_end();
 
-            synchronize(pg);
-
-            hooks.set_attr("num_vertices", num_vertices(g));
-            hooks.set_attr("num_edges", num_edges(g));
+            hooks.set_stat("num_vertices", num_vertices(g));
+            hooks.set_stat("num_edges", num_edges(g));
 
             // Algorithm
             for (string algName : split(args.alg_name, ' '))
             {
-                runAlgorithm(algName, g, max_num_vertices);
-                synchronize(pg);
+                runAlgorithm(algName, g);
             }
 
             if (args.sort_mode == DynoGraph::Args::SNAPSHOT)
             {
                 g.clear();
-                synchronize(pg);
+                synchronize(g);
             }
         }
     }

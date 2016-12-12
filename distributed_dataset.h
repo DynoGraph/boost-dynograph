@@ -5,7 +5,7 @@
 #ifndef BOOST_DYNOGRAPH_DISTRIBUTEDDATASET_H
 #define BOOST_DYNOGRAPH_DISTRIBUTEDDATASET_H
 
-#include <dynograph_util.hh>
+#include <dynograph_util.h>
 #include <boost/graph/use_mpi.hpp>
 #include <boost/graph/distributed/mpi_process_group.hpp>
 #include <boost/serialization/serialization.hpp>

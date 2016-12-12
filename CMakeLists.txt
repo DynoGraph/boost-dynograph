@@ -36,15 +36,14 @@ find_package(Boost 1.61.0 REQUIRED
 
 # Find mpi
 find_package(MPI)
+add_definitions(-DUSE_MPI)
 
 # Build libraries
 add_subdirectory(dynograph_util)
-add_subdirectory(hooks)
 
 # Build executable
 add_executable(boost-dynograph
     main.cc
-    distributed_dataset.cpp distributed_dataset.h
     boost_algs.cpp boost_algs.h
     algs/bc.cpp
     algs/bfs.cpp
@@ -55,7 +54,7 @@ add_executable(boost-dynograph
 )
 target_include_directories(boost-dynograph PRIVATE
     ${CMAKE_SOURCE_DIR}/dynograph_util
-    ${CMAKE_SOURCE_DIR}/hooks
+    ${CMAKE_SOURCE_DIR}/dynograph_util/hooks
     ${Boost_INCLUDE_DIRS}
     ${MPI_CXX_INCLUDE_PATH}
 )

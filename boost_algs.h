@@ -13,8 +13,7 @@
 #include <string>
 #include <inttypes.h>
 
-Vertex pickSource(Graph &g);
-void runAlgorithm(std::string algName, Graph &g);
+void runAlgorithm(std::string algName, Graph &g, const std::vector<int64_t> &sources);
 
 void run_bc(Graph &g);
 void run_bfs(Graph &g, Vertex source);

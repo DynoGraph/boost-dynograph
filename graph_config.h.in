@@ -29,9 +29,9 @@ typedef boost::adjacency_list<
 > Graph;
 
 // Integer type for referring to a vertex by ID number
-typedef boost::graph_traits<Graph>::vertices_size_type VertexId;
+typedef boost::graph_traits<Graph>::vertices_size_type BoostVertexId;
 // Proxy object for a vertex that may be stored locally or remote
-typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
-typedef boost::graph_traits<Graph>::edge_descriptor Edge;
+typedef boost::graph_traits<Graph>::vertex_descriptor BoostVertex;
+typedef boost::graph_traits<Graph>::edge_descriptor BoostEdge;
 
 #endif

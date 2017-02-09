@@ -25,9 +25,9 @@ configure_file(
 # Find OpenMP
 find_package(OpenMP REQUIRED)
 if(OPENMP_FOUND)
- set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
- set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
- set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
 # Find Boost and check version
@@ -44,7 +44,8 @@ add_subdirectory(dynograph_util)
 # Build executable
 add_executable(boost-dynograph
     main.cc
-    boost_algs.cpp boost_algs.h
+    boost_dynamic_graph.cpp
+    boost_algs.cpp
     algs/bc.cpp
     algs/bfs.cpp
     algs/cc.cpp
@@ -52,13 +53,13 @@ add_executable(boost-dynograph
     algs/pagerank.cpp
     algs/sssp.cpp
 )
-target_include_directories(boost-dynograph PRIVATE
+include_directories(
     ${CMAKE_SOURCE_DIR}/dynograph_util
     ${CMAKE_SOURCE_DIR}/dynograph_util/hooks
     ${Boost_INCLUDE_DIRS}
     ${MPI_CXX_INCLUDE_PATH}
 )
-target_link_libraries(boost-dynograph
+link_libraries(
     dynograph_util
     hooks
     ${Boost_LIBRARIES}
@@ -66,3 +67,18 @@ target_link_libraries(boost-dynograph
 )
 # Enable precompiled headers
 #cotire(boost-dynograph)
+
+add_executable(boost_dynograph_test
+    boost_dynograph_test.cpp
+    boost_dynamic_graph.cpp
+    boost_algs.cpp
+    algs/bc.cpp
+    algs/bfs.cpp
+    algs/cc.cpp
+    algs/gc.cpp
+    algs/pagerank.cpp
+    algs/sssp.cpp
+)
+target_link_libraries(boost_dynograph_test gtest)
+enable_testing()
+add_test(boost_dynograph_test boost_dynograph_test)

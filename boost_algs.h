@@ -16,10 +16,10 @@
 void runAlgorithm(std::string algName, Graph &g, const std::vector<int64_t> &sources);
 
 void run_bc(Graph &g);
-void run_bfs(Graph &g, Vertex source);
+void run_bfs(Graph &g, BoostVertex source);
 void run_cc(Graph &g);
 void run_gc(Graph &g);
-void run_sssp(Graph &g, Vertex source);
+void run_sssp(Graph &g, BoostVertex source);
 void run_pagerank(Graph &g);
 
 

@@ -21,7 +21,7 @@ private:
     DistanceMap distance;
 };
 
-void run_bfs(Graph &g, Vertex source)
+void run_bfs(Graph &g, BoostVertex source)
 {
     std::vector<int> local_distance_vec(boost::num_vertices(g));
     auto distance_map = make_iterator_property_map(local_distance_vec.begin(), get(boost::vertex_index, g));

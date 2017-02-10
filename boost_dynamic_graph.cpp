@@ -4,6 +4,8 @@
 #include <chrono>
 #include <sstream>
 #include <vector>
+#include <functional>
+#include <hooks/dynograph_edge_count.h>
 
 boost_dynamic_graph::boost_dynamic_graph(DynoGraph::Args args, int64_t max_vertex_id)
 : DynoGraph::DynamicGraph(args, max_vertex_id)
@@ -29,12 +31,16 @@ boost_dynamic_graph::delete_edges_older_than(int64_t threshold) {
 
 void
 boost_dynamic_graph::insert_batch(const DynoGraph::Batch &batch) {
+
+    // TODO scatter edges to owning process
+    // TODO implement bulk load in snapshot mode
+
     for (DynoGraph::Edge e : batch)
     {
         assert(e.src > 0 && e.dst > 0);
         assert(static_cast<Graph::vertices_size_type>(e.src) < global_max_nv);
         assert(static_cast<Graph::vertices_size_type>(e.dst) < global_max_nv);
-        Hooks::getInstance().traverse_edges(1);
+        DYNOGRAPH_EDGE_COUNT_TRAVERSE_EDGE();
         BoostVertex Src = boost::vertex(e.src, g);
         BoostVertex Dst = boost::vertex(e.dst, g);
         // Try to insert the edge
@@ -74,7 +80,10 @@ boost_dynamic_graph::get_out_degree(int64_t vertex_id) const {
 
 int64_t
 boost_dynamic_graph::get_num_vertices() const {
-    return num_vertices(g);
+    auto comm = communicator(g.process_group());
+    BoostVertexId nv = num_vertices(g);
+    boost::mpi::all_reduce(comm, nv, std::plus<BoostVertexId>());
+    return nv;
 }
 
 int64_t
@@ -82,4 +91,7 @@ boost_dynamic_graph::get_num_edges() const {
     return num_edges(g);
 }
 
-std::vector<std::string> get_supported_algs() { return {"bfs", "cc", "gc", "sssp", "pagerank"}; }
+std::vector<std::string>
+boost_dynamic_graph::get_supported_algs() {
+    return {"bfs", "cc", "gc", "sssp", "pagerank"};
+}

@@ -34,12 +34,26 @@ endif()
 find_package(Boost 1.61.0 REQUIRED
     COMPONENTS graph graph_parallel mpi serialization system)
 
-# Find mpi
-find_package(MPI)
-add_definitions(-DUSE_MPI)
+include_directories(
+    ${Boost_INCLUDE_DIRS}
+    ${MPI_CXX_INCLUDE_PATH}
+)
+link_libraries(
+    ${Boost_LIBRARIES}
+    ${MPI_CXX_LIBRARIES}
+)
 
 # Build libraries
+add_definitions(-DUSE_MPI)
 add_subdirectory(dynograph_util)
+include_directories(
+    ${CMAKE_SOURCE_DIR}/dynograph_util
+    ${CMAKE_SOURCE_DIR}/dynograph_util/hooks
+)
+link_libraries(
+    dynograph_util
+    hooks
+)
 
 # Build executable
 add_executable(boost-dynograph
@@ -53,21 +67,11 @@ add_executable(boost-dynograph
     algs/pagerank.cpp
     algs/sssp.cpp
 )
-include_directories(
-    ${CMAKE_SOURCE_DIR}/dynograph_util
-    ${CMAKE_SOURCE_DIR}/dynograph_util/hooks
-    ${Boost_INCLUDE_DIRS}
-    ${MPI_CXX_INCLUDE_PATH}
-)
-link_libraries(
-    dynograph_util
-    hooks
-    ${Boost_LIBRARIES}
-    ${MPI_CXX_LIBRARIES}
-)
+
 # Enable precompiled headers
 #cotire(boost-dynograph)
 
+# Build tests
 add_executable(boost_dynograph_test
     boost_dynograph_test.cpp
     boost_dynamic_graph.cpp
@@ -79,6 +83,6 @@ add_executable(boost_dynograph_test
     algs/pagerank.cpp
     algs/sssp.cpp
 )
-target_link_libraries(boost_dynograph_test gtest)
+target_link_libraries(boost_dynograph_test gtest_main)
 enable_testing()
 add_test(boost_dynograph_test boost_dynograph_test)

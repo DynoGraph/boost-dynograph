@@ -11,7 +11,7 @@
 #ifndef BOOST_GRAPH_BREADTH_FIRST_SEARCH_HPP
 #define BOOST_GRAPH_BREADTH_FIRST_SEARCH_HPP
 //#warning "Including modified breadth_first_search.hpp"
-#include <hooks_c.h>
+#include <dynograph_edge_count.h>
 #define BOOST_GRAPH_USE_MPI 1
 
 /*
@@ -92,7 +92,7 @@ namespace boost {
         }
       } // end for
       boost::tie(ei, ei_end) = out_edges(u, g);
-      hooks_traverse_edges(distance(ei, ei_end));
+      DYNOGRAPH_EDGE_COUNT_TRAVERSE_MULTIPLE_EDGES(distance(ei, ei_end));
       put(color, u, Color::black());          vis.finish_vertex(u, g);
     } // end while
   } // breadth_first_visit

@@ -5,7 +5,7 @@ class boost_dynamic_graph : public DynoGraph::DynamicGraph
 {
 protected:
     Graph g;
-    int64_t global_max_nv;
+    BoostVertexId global_max_nv;
 public:
     boost_dynamic_graph(DynoGraph::Args args, int64_t max_vertex_id);
 
@@ -17,4 +17,6 @@ public:
     virtual int64_t get_num_vertices() const override;
     virtual int64_t get_num_edges() const override;
     static std::vector<std::string> get_supported_algs();
+
+    void dump();
 };

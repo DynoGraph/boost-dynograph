@@ -13,7 +13,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall")
 # vecS listS setS mapS multisetS multimapS hash_setS hash_mapS hash_multisetS hash_multimapS
 # Stick with vecS for vertex list, otherwise there's no way to refer to a vertex by ID
 # Everything except multimapS seems to work for the edge list type
-set(OUT_EDGE_LIST_TYPE "vecS" CACHE STRING "Data structure used for the edge list")
+set(OUT_EDGE_LIST_TYPE "hash_mapS" CACHE STRING "Data structure used for the edge list")
 set(VERTEX_LIST_TYPE   "vecS" CACHE STRING "Data structure used for the vertex list")
 
 configure_file(

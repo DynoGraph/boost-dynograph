@@ -1,6 +1,21 @@
 #pragma once
 #include <dynograph_util.h>
 #include "boost_algs.h"
+
+class edge_update : public DynoGraph::Edge
+{
+private:
+    bool done;
+public:
+    edge_update() = default;
+    edge_update(const DynoGraph::Edge &e) : DynoGraph::Edge(e), done(false) {}
+    void mark_done() { done = true; }
+    bool is_done() const { return done; }
+    friend bool operator<(const edge_update& a, const edge_update& b);
+};
+bool operator<(const edge_update& a, const edge_update& b);
+BOOST_IS_BITWISE_SERIALIZABLE(class edge_update);
+
 class boost_dynamic_graph : public DynoGraph::DynamicGraph
 {
 protected:
@@ -19,4 +34,8 @@ public:
     static std::vector<std::string> get_supported_algs();
 
     void dump();
+
+    static void scatter_batch(const Graph& g, const DynoGraph::Batch &batch, std::vector<edge_update> &local_updates);
+
 };
+

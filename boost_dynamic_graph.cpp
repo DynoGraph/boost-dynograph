@@ -8,6 +8,8 @@
 #include <tuple>
 #include <hooks/dynograph_edge_count.h>
 
+using std::vector;
+
 boost_dynamic_graph::boost_dynamic_graph(DynoGraph::Args args, int64_t max_vertex_id)
 : DynoGraph::DynamicGraph(args, max_vertex_id)
 , g(static_cast<BoostVertexId>(max_vertex_id+1))
@@ -30,25 +32,6 @@ boost_dynamic_graph::delete_edges_older_than(int64_t threshold) {
     synchronize(g);
 }
 
-class edge_update : public DynoGraph::Edge
-{
-private:
-    bool done;
-public:
-    edge_update() = default;
-    edge_update(const DynoGraph::Edge &e) : DynoGraph::Edge(e), done(false) {}
-    void mark_done() { done = true; }
-    bool is_done() const { return done; }
-    friend bool operator<(const edge_update& a, const edge_update& b);
-};
-bool
-operator<(const edge_update& a, const edge_update& b)
-{
-    return std::tie(a.src, a.dst, a.weight, a.timestamp, a.done)
-           < std::tie(b.src, b.dst, b.weight, b.timestamp, b.done);
-}
-BOOST_IS_BITWISE_SERIALIZABLE(class edge_update);
-
 // Finds an element in a sorted range using binary search
 // http://stackoverflow.com/a/446327/1877086
 template<class Iter, class T, class Compare>
@@ -64,20 +47,26 @@ binary_find(Iter begin, Iter end, T val, Compare comp)
         return end; // not found
 }
 
-void
-boost_dynamic_graph::insert_batch(const DynoGraph::Batch &batch)
+bool
+operator<(const edge_update& a, const edge_update& b)
 {
-    // 1. Distribute the updates to the rank that will perform them
-    using std::vector;
+    return std::tie(a.src, a.dst, a.weight, a.timestamp, a.done)
+           < std::tie(b.src, b.dst, b.weight, b.timestamp, b.done);
+}
+
+// Splits up the batch up updates, sending each edge to the rank that owns the source vertex
+void
+boost_dynamic_graph::scatter_batch(const Graph& g, const DynoGraph::Batch &batch, vector<edge_update>& local_updates)
+{
     auto comm = boost::mpi::communicator();
     const int num_ranks = comm.size();
-    vector<edge_update> local_updates;
+
     if (comm.rank() == 0)
     {
         // Copy the batch to a local list
         vector<edge_update> global_updates(batch.begin(), batch.end());
         // Sort the list of updates by the rank that owns the source vertex
-        auto by_mapping = [this](const edge_update &a, const edge_update &b) {
+        auto by_mapping = [&g](const edge_update &a, const edge_update &b) {
             BoostVertex va = boost::vertex(a.src, g);
             BoostVertex vb = boost::vertex(b.src, g);
             return va.owner < vb.owner;
@@ -115,8 +104,17 @@ boost_dynamic_graph::insert_batch(const DynoGraph::Batch &batch)
         // Receive list of local updates
         boost::mpi::scatterv(comm, local_updates.data(), local_num_updates, 0);
     }
+}
 
+void
+boost_dynamic_graph::insert_batch(const DynoGraph::Batch &batch)
+{
+    auto comm = boost::mpi::communicator();
+
+    // 1. Distribute the updates to the rank that will perform them
     // TODO implement bulk load in snapshot mode
+    vector<edge_update> local_updates;
+    boost_dynamic_graph::scatter_batch(g, batch, local_updates);
 
     // 2. Update existing edges
     std::sort(local_updates.begin(), local_updates.end());
@@ -151,6 +149,8 @@ boost_dynamic_graph::insert_batch(const DynoGraph::Batch &batch)
         put(boost::edge_weight, g, e, weight);
         put(boost::edge_timestamp, g, e, timestamp);
     }
+
+    synchronize(g);
 
     // 3. Add any remaining updates to the graph as new edges
     for (auto u = local_updates.begin(); u < local_updates.end();)
@@ -197,11 +197,11 @@ boost_dynamic_graph::update_alg(const std::string &alg_name, const std::vector<i
 int64_t
 boost_dynamic_graph::get_out_degree(int64_t vertex_id) const {
     BoostVertex v = boost::vertex(vertex_id, g);
+    int64_t degree = 0;
     if (owner(v) == process_group(g).rank) {
-        return boost::out_degree(v, g);
-    } else {
-        return 0;
+        degree = boost::out_degree(v, g);
     }
+    return boost::mpi::all_reduce(boost::mpi::communicator(), degree, std::plus<decltype(degree)>());
 }
 
 int64_t
@@ -212,7 +212,7 @@ boost_dynamic_graph::get_num_vertices() const {
     {
         if (boost::out_degree(v, g) > 0) { nv += 1; }
     }
-    boost::mpi::all_reduce(comm, nv, std::plus<decltype(nv)>());
+    nv = boost::mpi::all_reduce(comm, nv, std::plus<decltype(nv)>());
     return nv;
 }
 
@@ -220,7 +220,7 @@ int64_t
 boost_dynamic_graph::get_num_edges() const {
     auto comm = communicator(g.process_group());
     auto ne = num_edges(g);
-    boost::mpi::all_reduce(comm, ne, std::plus<decltype(ne)>());
+    ne = boost::mpi::all_reduce(comm, ne, std::plus<decltype(ne)>());
     return ne;
 }
 

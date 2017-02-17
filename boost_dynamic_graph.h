@@ -31,6 +31,7 @@ public:
     virtual int64_t get_out_degree(int64_t vertex_id) const override;
     virtual int64_t get_num_vertices() const override;
     virtual int64_t get_num_edges() const override;
+    virtual std::vector<int64_t> get_high_degree_vertices(int64_t n) const override;
     static std::vector<std::string> get_supported_algs();
 
     void dump();

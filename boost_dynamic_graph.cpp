@@ -201,7 +201,36 @@ boost_dynamic_graph::get_out_degree(int64_t vertex_id) const {
     if (owner(v) == process_group(g).rank) {
         degree = boost::out_degree(v, g);
     }
-    return boost::mpi::all_reduce(boost::mpi::communicator(), degree, std::plus<decltype(degree)>());
+    return degree;
+}
+
+vector<int64_t>
+boost_dynamic_graph::get_high_degree_vertices(int64_t n) const
+{
+    using DynoGraph::vertex_degree;
+    auto comm = boost::mpi::communicator();
+    // Get the degree of every local vertex
+    vector<vertex_degree> local_degrees;
+    local_degrees.reserve(num_vertices(g));
+    BGL_FORALL_VERTICES_T(v, g, decltype(g))
+    {
+        local_degrees.emplace_back(v.local, boost::out_degree(v, g));
+    }
+    // Sort to get the vertices with the highest degrees
+    std::sort(local_degrees.begin(), local_degrees.end());
+    // Chop off all but the top N
+    local_degrees.erase(local_degrees.begin(), local_degrees.end() - n);
+    // Get local max from all vertices
+    vector<vertex_degree> global_degrees(n * comm.size());
+    boost::mpi::all_gather(comm, local_degrees.data(), local_degrees.size(), global_degrees.data());
+    // Sort again to get global max
+    std::sort(global_degrees.begin(), global_degrees.end());
+    global_degrees.erase(global_degrees.begin(), global_degrees.end() - n);
+    vector<int64_t> vertex_ids(n);
+    std::transform(global_degrees.begin(), global_degrees.end(), vertex_ids.begin(),
+        [](const vertex_degree &a) { return a.vertex_id; }
+    );
+    return vertex_ids;
 }
 
 int64_t

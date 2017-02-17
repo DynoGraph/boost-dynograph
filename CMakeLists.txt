@@ -23,13 +23,8 @@ configure_file(
     @ONLY
 )
 
-# Find OpenMP
-find_package(OpenMP REQUIRED)
-if(OPENMP_FOUND)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-endif()
+# Find MPI installation
+find_package(MPI)
 
 # Find Boost and check version
 find_package(Boost 1.61.0 REQUIRED
@@ -44,7 +39,7 @@ link_libraries(
     ${MPI_CXX_LIBRARIES}
 )
 
-# Build libraries
+# Build dynograph_util and hooks in MPI mode
 add_definitions(-DUSE_MPI)
 add_subdirectory(dynograph_util)
 include_directories(

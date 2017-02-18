@@ -201,7 +201,7 @@ boost_dynamic_graph::get_out_degree(int64_t vertex_id) const {
     if (owner(v) == process_group(g).rank) {
         degree = boost::out_degree(v, g);
     }
-    return degree;
+    return boost::mpi::all_reduce(boost::mpi::communicator(), degree, boost::mpi::maximum<int64_t>());
 }
 
 vector<int64_t>

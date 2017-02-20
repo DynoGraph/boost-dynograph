@@ -1,6 +1,3 @@
 [submodule "dynograph_util"]
 	path = dynograph_util
 	url = git@github.gatech.edu:ehein6/dynograph_util.git
-[submodule "hooks"]
-	path = hooks
-	url = git@github.gatech.edu:ehein6/hooks.git

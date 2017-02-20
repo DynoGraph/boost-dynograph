@@ -109,84 +109,104 @@ boost_dynamic_graph::scatter_batch(const Graph& g, const DynoGraph::Batch &batch
 void
 boost_dynamic_graph::insert_batch(const DynoGraph::Batch &batch)
 {
-    auto comm = boost::mpi::communicator();
-
-    // 1. Distribute the updates to the rank that will perform them
-    // TODO implement bulk load in snapshot mode
-    vector<edge_update> local_updates;
-    boost_dynamic_graph::scatter_batch(g, batch, local_updates);
-
-    // 2. Update existing edges
-    std::sort(local_updates.begin(), local_updates.end());
-    auto same_src_and_dst = [](const edge_update& a, const edge_update& b) { return a.src == b.src && a.dst == b.dst; };
-    // TODO Filter by source vertex to reduce search time
-    BGL_FORALL_EDGES_T(e, g, decltype(g))
+    if (args.sort_mode == DynoGraph::Args::SORT_MODE::SNAPSHOT)
     {
-        // Make sure we are updating local vertices
-        assert(e.source_owns_edge && e.source_processor == comm.rank());
+        for (const DynoGraph::Edge &e : batch) {
+            boost::add_edge(
+                boost::vertex(e.src, g),
+                boost::vertex(e.dst, g),
+                // Boost uses template nesting to implement multiple edge properties
+                Weight(e.weight, Timestamp(e.timestamp)),
+                g
+            );
+        }
+        synchronize(g);
 
-        auto src_dst_compare = [](const edge_update& a, const edge_update& b) {
-            return std::tie(a.src, a.dst) < std::tie(b.src, b.dst);
-        };
-        // Find and perform updates that match this edge
-        edge_update key;
-        key.src = e.local.m_source;
-        key.dst = e.local.m_target;
-        auto weight = get(boost::edge_weight, g, e);
-        auto timestamp = get(boost::edge_timestamp, g, e);
-        // Use binary search to find the first matching update
-        for (auto u = binary_find(local_updates.begin(), local_updates.end(), key, src_dst_compare);
-        // Keep walking the list until we reach the last update for this edge
-            u < local_updates.end() && !src_dst_compare(key, *u); ++u)
+    } else {
+        /* Boost can only handle edge updates efficiently when the edge list data structure
+         * enforces uniqueness efficiently (something like a binary tree or hash map).
+         * Such data structures are not supported in distributed mode, so we'll have to
+         * do most of the work ourselves. The strategy here is as follows:
+         * 1. Distribute the updates to the rank that will perform them
+         * 2. Update existing edges
+         * 3. Add any remaining updates to the graph as new edges
+         */
+
+        // 1. Distribute the updates to the rank that will perform them
+        auto comm = boost::mpi::communicator();
+        vector<edge_update> local_updates;
+        boost_dynamic_graph::scatter_batch(g, batch, local_updates);
+
+        // 2. Update existing edges
+        std::sort(local_updates.begin(), local_updates.end());
+        auto same_src_and_dst = [](const edge_update& a, const edge_update& b) { return a.src == b.src && a.dst == b.dst; };
+        // TODO Filter by source vertex to reduce search time
+        BGL_FORALL_EDGES_T(e, g, decltype(g))
         {
-            // Increment edge weight
-            weight += u->weight;
-            // Update timestamp
-            timestamp = std::max(timestamp, u->timestamp);
-            // Mark this update as done
-            u->mark_done();
+            // Make sure we are updating local vertices
+            assert(e.source_owns_edge && e.source_processor == comm.rank());
+
+            auto src_dst_compare = [](const edge_update& a, const edge_update& b) {
+                return std::tie(a.src, a.dst) < std::tie(b.src, b.dst);
+            };
+            // Find and perform updates that match this edge
+            edge_update key;
+            key.src = e.local.m_source;
+            key.dst = e.local.m_target;
+            auto weight = get(boost::edge_weight, g, e);
+            auto timestamp = get(boost::edge_timestamp, g, e);
+            // Use binary search to find the first matching update
+            for (auto u = binary_find(local_updates.begin(), local_updates.end(), key, src_dst_compare);
+            // Keep walking the list until we reach the last update for this edge
+                u < local_updates.end() && !src_dst_compare(key, *u); ++u)
+            {
+                // Increment edge weight
+                weight += u->weight;
+                // Update timestamp
+                timestamp = std::max(timestamp, u->timestamp);
+                // Mark this update as done
+                u->mark_done();
+            }
+            put(boost::edge_weight, g, e, weight);
+            put(boost::edge_timestamp, g, e, timestamp);
         }
-        put(boost::edge_weight, g, e, weight);
-        put(boost::edge_timestamp, g, e, timestamp);
-    }
 
-    synchronize(g);
-
-    // 3. Add any remaining updates to the graph as new edges
-    for (auto u = local_updates.begin(); u < local_updates.end();)
-    {
-        // Skip past updates that were processed in step 2
-        if (u->is_done()) {
-            ++u;
-            continue;
-        }
-
-        // Make sure we are using valid vertices
-        assert(u->src > 0 && u->dst > 0);
-        assert(static_cast<Graph::vertices_size_type>(u->src) < global_max_nv);
-        assert(static_cast<Graph::vertices_size_type>(u->dst) < global_max_nv);
-        BoostVertex Src = boost::vertex(u->src, g);
-        BoostVertex Dst = boost::vertex(u->dst, g);
-
-        // Combine properties from this and all duplicates of this edge
-        int64_t weight = 0;
-        int64_t timestamp = 0;
-        for (auto first = u; u < local_updates.end() && same_src_and_dst(*first, *u); ++u)
+        // 3. Add any remaining updates to the graph as new edges
+        for (auto u = local_updates.begin(); u < local_updates.end();)
         {
-            weight += u->weight;
-            timestamp = std::max(timestamp, u->timestamp);
-            u->mark_done();
-        }
+            // Skip past updates that were processed in step 2
+            if (u->is_done()) {
+                ++u;
+                continue;
+            }
 
-        // Insert the edge
-        boost::add_edge(
-            Src, Dst,
-            // Boost uses template nesting to implement multiple edge properties
-            Weight(weight, Timestamp(timestamp)),
-            g
-        );
-    }
-    synchronize(g);
+            // Make sure we are using valid vertices
+            assert(u->src > 0 && u->dst > 0);
+            assert(static_cast<Graph::vertices_size_type>(u->src) < global_max_nv);
+            assert(static_cast<Graph::vertices_size_type>(u->dst) < global_max_nv);
+            BoostVertex Src = boost::vertex(u->src, g);
+            BoostVertex Dst = boost::vertex(u->dst, g);
+
+            // Combine properties from this and all duplicates of this edge
+            int64_t weight = 0;
+            int64_t timestamp = 0;
+            for (auto first = u; u < local_updates.end() && same_src_and_dst(*first, *u); ++u)
+            {
+                weight += u->weight;
+                timestamp = std::max(timestamp, u->timestamp);
+                u->mark_done();
+            }
+
+            // Insert the edge
+            boost::add_edge(
+                Src, Dst,
+                // Boost uses template nesting to implement multiple edge properties
+                Weight(weight, Timestamp(timestamp)),
+                g
+            );
+        }
+        synchronize(g);
+    } // end if sort_mode == snapshot
 }
 
 void

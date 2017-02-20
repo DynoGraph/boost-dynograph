@@ -11,11 +11,12 @@ TEST(BOOST_DYNOGRAPH, ScatterBatchTest)
 {
     DynoGraph::Args args;
     args.input_path = "dynograph_util/data/worldcup-10K.graph.bin";
-    args.batch_size = 50;
+    args.batch_size = 44500;
     args.num_epochs = 1;
     args.sort_mode = DynoGraph::Args::SORT_MODE::UNSORTED;
     args.num_trials = 1;
     args.num_alg_trials = 1;
+    args.window_size = 1.0;
     DynoGraph::Dataset dataset(args);
     Graph graph(dataset.getMaxVertexId() + 1);
 

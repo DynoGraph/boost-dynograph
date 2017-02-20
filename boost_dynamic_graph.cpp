@@ -75,7 +75,7 @@ boost_dynamic_graph::scatter_batch(const Graph& g, const DynoGraph::Batch &batch
 
         // Scan the list to calculate the number of updates for each rank
         vector<int> sizes_by_rank(num_ranks, 0);
-        for (auto iter = global_updates.begin(); iter < global_updates.end(); ++iter)
+        for (auto iter = global_updates.begin(); iter < global_updates.end();)
         {
             // Owner of current range
             int current_rank = boost::vertex(iter->src, g).owner;
@@ -97,7 +97,7 @@ boost_dynamic_graph::scatter_batch(const Graph& g, const DynoGraph::Batch &batch
 
     } else {
         // Receive number of updates for this rank
-        size_t local_num_updates;
+        int local_num_updates;
         boost::mpi::scatter(comm, local_num_updates, 0);
         // Allocate buffer
         local_updates.resize(local_num_updates);

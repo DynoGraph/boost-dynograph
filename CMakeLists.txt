@@ -82,3 +82,8 @@ add_executable(boost_dynograph_test
 target_link_libraries(boost_dynograph_test gtest_main)
 enable_testing()
 add_test(boost_dynograph_test boost_dynograph_test)
+find_program(MPIRUN mpirun REQUIRED)
+add_test(
+    NAME mpi_boost_dynograph_test
+    COMMAND mpirun -np 4 boost_dynograph_test
+)

@@ -6,7 +6,7 @@
 void run_cc(Graph &g)
 {
     std::vector<int> local_components_vec(boost::num_vertices(g));
-    boost::graph::distributed::connected_components_ps(
+    boost::graph::connected_components(
         g,
         make_iterator_property_map(local_components_vec.begin(), get(boost::vertex_index, g))
     );

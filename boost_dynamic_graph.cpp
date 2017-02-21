@@ -279,20 +279,8 @@ boost_dynamic_graph::get_supported_algs() {
 }
 
 void
-boost_dynamic_graph::dump()
+boost_dynamic_graph::dump() const
 {
-//    auto local_vertices = vertices(g);
-//    for (auto vi = local_vertices.first; vi != local_vertices.second; ++vi) {
-//        BoostVertex v = *vi;
-//        auto local_out_edges = out_edges(v, g);
-//        for (auto ei = local_out_edges.first; ei != local_out_edges.second; ++ei) {
-//            BoostEdge e = *ei;
-//            auto weight = get(boost::edge_weight, g, e);
-//            auto ts = get(boost::edge_timestamp, g, e);
-//            std::cout << e.local.m_source << " " << e.local.m_target << " " << weight << " " << ts << " " << "\n";
-//        }
-//    }
-
     BGL_FORALL_EDGES_T(e, g, decltype(g))
     {
         auto weight = get(boost::edge_weight, g, e);

@@ -34,7 +34,7 @@ public:
     virtual std::vector<int64_t> get_high_degree_vertices(int64_t n) const override;
     static std::vector<std::string> get_supported_algs();
 
-    void dump();
+    void dump() const;
 
     static void scatter_batch(const Graph& g, const DynoGraph::Batch &batch, std::vector<edge_update> &local_updates);
 

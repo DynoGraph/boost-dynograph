@@ -3,6 +3,8 @@ sudo: false
 language: cpp
 compiler:
   - gcc
+install:
+  - if [ "$CXX" = "g++" ]; then export CXX="g++-5" CC="gcc-5"; fi
 before_script:
   - mkdir build
   - cd build
@@ -14,6 +16,8 @@ addons:
   apt:
     packages:
       - cmake
+      - gcc-5
+      - g++-5
       - cmake-data
       - openmpi-bin
       - openmpi-common

@@ -10,6 +10,7 @@ before_script:
   - cd build
   - cmake ..
 script:
+  - set -e
   - make -j2
   - CTEST_OUTPUT_ON_FAILURE=1 make test
 addons:

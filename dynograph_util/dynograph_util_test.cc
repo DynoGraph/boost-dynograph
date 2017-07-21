@@ -1,9 +1,13 @@
 
 // Provides unit tests for classes and functionality in dynograph_util
 
-#include "dynograph_util.h"
 #include "reference_impl.h"
+#include "edgelist_dataset.h"
+#include "benchmark.h"
 #include <gtest/gtest.h>
+#include "pvector.h"
+#include <fstream>
+#include <iostream>
 
 using namespace DynoGraph;
 
@@ -11,6 +15,24 @@ using namespace DynoGraph;
 TEST(DynoGraphUtilTests, ArgValidationFail) {
     Args args;
     EXPECT_NE(args.validate(), "");
+}
+
+// Make sure we can load sources from disk
+TEST(DynoGraphUtilTests, LoadSources) {
+    // Create temp file with sources
+    std::string temp_filename = "test_sources.txt";
+    std::vector<int64_t> test_sources = {3, 6, 9, 12};
+    std::ofstream temp_file(temp_filename);
+    for (long long int i : test_sources) {
+        temp_file << i << "\n";
+    }
+    temp_file.close();
+    // Load from file
+    auto loaded_sources = DynoGraph::load_sources_from_file(temp_filename, 12);
+    // Check that sources were loaded correctly
+    EXPECT_EQ(test_sources, loaded_sources);
+    // Clean up
+    remove(temp_filename.c_str());
 }
 
 class DatasetTest: public ::testing::TestWithParam<Args> {
@@ -24,20 +46,23 @@ public:
         args.sort_mode = Args::SORT_MODE::UNSORTED;
         args.alg_names = {};
 
-        for (int64_t batch_size : { 100, 500, 5000 }) {
-            args.batch_size = batch_size;
-            for (double window_size : { 0.1, 0.5, 1.0 }) {
-                args.window_size = window_size;
-                for (int64_t num_epochs : {3, 5, 7}) {
-                    args.num_epochs = num_epochs;
-                    all_args.push_back(args);
+        for (std::string input_path : { "data/worldcup-10K.graph.bin", "0.55-0.20-0.10-0.15-44500-8K.rmat" }) {
+            args.input_path = input_path;
+            for (int64_t batch_size : { 100, 500, 5000 }) {
+                args.batch_size = batch_size;
+                for (double window_size : { 0.1, 0.5, 1.0 }) {
+                    args.window_size = window_size;
+                    for (int64_t num_epochs : {3, 5, 7}) {
+                        args.num_epochs = num_epochs;
+                        all_args.push_back(args);
+                    }
                 }
             }
         }
     }
 protected:
-    const Dataset dataset;
-    DatasetTest() : dataset(GetParam()) {}
+    std::shared_ptr<IDataset> dataset;
+    DatasetTest() : dataset(create_dataset(GetParam())) {}
 };
 std::vector<Args> DatasetTest::all_args;
 
@@ -52,52 +77,30 @@ TEST_P(DatasetTest, LoadDatasetCorrectly) {
     const int64_t actual_num_edges = 44500;
 
     // Check that the right number of edges were loaded
-    EXPECT_EQ(dataset.getNumEdges(), actual_num_edges);
+    EXPECT_EQ(dataset->getNumEdges(), actual_num_edges);
     // Check that the dataset was partitioned into the right number of batches
-    EXPECT_EQ(dataset.getNumBatches(), actual_num_edges / args.batch_size);
+    EXPECT_EQ(dataset->getNumBatches(), actual_num_edges / args.batch_size);
     if (args.window_size == 1.0) {
-        for (int64_t i = 0; i < dataset.getNumBatches(); ++i) {
-            EXPECT_EQ(dataset.getBatch(i)->size(), args.batch_size);
+        for (int64_t i = 0; i < dataset->getNumBatches(); ++i) {
+            EXPECT_EQ(dataset->getBatch(i)->size(), args.batch_size);
         }
     }
 }
 
-TEST_P(DatasetTest, SetWindowThresholdCorrectly) {
-    const Args &args = GetParam();
-
-    double first_filtered_batch = args.window_size * dataset.getNumBatches();
-    const Edge& first_edge = *dataset.getBatch(0)->begin();
-    const Edge& last_edge = *(dataset.getBatch(dataset.getNumBatches()-1)->end()-1);
-    int64_t min_ts = first_edge.timestamp;
-    int64_t max_ts = last_edge.timestamp;
-    EXPECT_GE(max_ts, min_ts);
-
-    for (int64_t i = 0; i < dataset.getNumBatches(); ++i)
-    {
-        int64_t threshold = dataset.getTimestampForWindow(i);
-
-        if (i < first_filtered_batch)
-        {
-            EXPECT_EQ(threshold, min_ts);
-        } else {
-            EXPECT_GE(threshold, min_ts);
-            EXPECT_LE(threshold, max_ts);
-        }
-    }
-}
-
+// TODO this isn't a dataset test anymore, now that enable_algs_for_batch is a free function
 TEST_P(DatasetTest, DontSkipAnyEpochs) {
     const Args &args = GetParam();
 
     int64_t actual_num_epochs = 0;
-    for (int64_t i = 0; i < dataset.getNumBatches(); ++i)
+    int64_t num_batches = dataset->getNumBatches();
+    for (int64_t i = 0; i < num_batches; ++i)
     {
-        bool run_epoch = dataset.enableAlgsForBatch(i);
+        bool run_epoch = enable_algs_for_batch(i, num_batches, args.num_epochs);
         if (run_epoch) {
             actual_num_epochs += 1;
         }
         // There should always be an epoch after the last batch
-        if (i == dataset.getNumBatches() - 1) {
+        if (i == num_batches - 1) {
             EXPECT_EQ(run_epoch, true);
         }
     }
@@ -137,29 +140,30 @@ std::vector<Args> SortModeTest::all_args;
 TEST_P(SortModeTest, SortModeDoesntAffectEdgeCount)
 {
     DynoGraph::Args args = GetParam();
+    typedef DynoGraph::Args::SORT_MODE SORT_MODE;
+    args.sort_mode = SORT_MODE::UNSORTED;
+    DynoGraph::EdgeListDataset dataset(args);
+    int64_t max_vertex_id = dataset.getMaxVertexId();
 
     // Load the same graph in three different sort modes
-    args.sort_mode = DynoGraph::Args::SORT_MODE::UNSORTED;
-    DynoGraph::Dataset unsorted_dataset(args);
-    reference_impl unsorted_graph(args, unsorted_dataset.getMaxVertexId());
+    args.sort_mode = SORT_MODE::UNSORTED;
+    reference_impl unsorted_graph(args, max_vertex_id);
 
-    args.sort_mode = DynoGraph::Args::SORT_MODE::PRESORT;
-    DynoGraph::Dataset presort_dataset(args);
-    reference_impl presort_graph(args, presort_dataset.getMaxVertexId());
+    args.sort_mode = SORT_MODE::PRESORT;
+    reference_impl presort_graph(args, max_vertex_id);
 
-    args.sort_mode = DynoGraph::Args::SORT_MODE::SNAPSHOT;
-    DynoGraph::Dataset snapshot_dataset(args);
-    reference_impl snapshot_graph(args, snapshot_dataset.getMaxVertexId());
+    args.sort_mode = SORT_MODE::SNAPSHOT;
+    reference_impl snapshot_graph(args, max_vertex_id);
 
     auto values_match = [](int64_t a, int64_t b, int64_t c) { return a == b && b == c; };
 
     // Make sure the resulting graphs are the same in each batch, regardless of sort mode
-    for (int64_t batch = 0; batch < unsorted_dataset.getNumBatches(); ++batch)
+    for (int64_t batch = 0; batch < dataset.getNumBatches(); ++batch)
     {
         // Do deletions and check the graphs against each other
         //    snapshot_graph is omitted from this comparison, because we don't do deletions in snapshot mode
-        int64_t unsorted_threshold = unsorted_dataset.getTimestampForWindow(batch);
-        int64_t presort_threshold = presort_dataset.getTimestampForWindow(batch);
+        int64_t unsorted_threshold = dataset.getTimestampForWindow(batch);
+        int64_t presort_threshold = dataset.getTimestampForWindow(batch);
 
         ASSERT_EQ(unsorted_threshold, presort_threshold);
 
@@ -175,9 +179,9 @@ TEST_P(SortModeTest, SortModeDoesntAffectEdgeCount)
         }
 
         // Do insertions and check all three graphs against each other
-        unsorted_graph.insert_batch(*unsorted_dataset.getBatch(batch));
-        presort_graph.insert_batch(*presort_dataset.getBatch(batch));
-        snapshot_graph.insert_batch(*snapshot_dataset.getBatch(batch));
+        unsorted_graph.insert_batch(*get_preprocessed_batch(batch, dataset, SORT_MODE::UNSORTED));
+        presort_graph.insert_batch(*get_preprocessed_batch(batch, dataset, SORT_MODE::PRESORT));
+        snapshot_graph.insert_batch(*get_preprocessed_batch(batch, dataset, SORT_MODE::SNAPSHOT));
 
         ASSERT_PRED3(values_match,
             unsorted_graph.get_num_edges(),
@@ -201,7 +205,7 @@ TEST_P(SortModeTest, SortModeDoesntAffectEdgeCount)
 
         // Clear out snapshot graph before next batch
         snapshot_graph.~reference_impl();
-        new(&snapshot_graph) reference_impl(args, snapshot_dataset.getMaxVertexId());
+        new(&snapshot_graph) reference_impl(args, max_vertex_id);
     }
 }
 

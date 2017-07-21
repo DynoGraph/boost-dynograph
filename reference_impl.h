@@ -1,9 +1,9 @@
 #ifndef REFERENCE_IMPL_H
 #define REFERENCE_IMPL_H
 
-#include "dynograph_util.h"
+#include "dynamic_graph.h"
 #include <map>
-#include <inttypes.h>
+#include <cinttypes>
 
 /**
  * Reference implementation of the DynoGraph::DynamicGraph interface
@@ -75,7 +75,7 @@ public:
         }
     }
     // Run the specified algorithm
-    virtual void update_alg(const std::string &alg_name, const std::vector<int64_t> &sources) {};
+    virtual void update_alg(const std::string &alg_name, const std::vector<int64_t> &sources, DynoGraph::Range<int64_t> data) {};
     // Return the degree of the specified vertex
     virtual int64_t get_out_degree(int64_t vertex_id) const
     {

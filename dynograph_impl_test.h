@@ -2,9 +2,10 @@
 
 // Provides a test template for implementations of DynoGraph::DynamicGraph
 
-#include <dynograph_util.h>
+#include <hooks.h>
+#include "edgelist_dataset.h"
 #include <gtest/gtest.h>
-#include <reference_impl.h>
+#include "reference_impl.h"
 
 using namespace DynoGraph;
 
@@ -38,10 +39,13 @@ TYPED_TEST_P(ImplTest, CheckAlgs)
     Batch batch(edges.begin(), edges.end());
     this->impl.insert_batch(batch);
 
+    // Allocate data for alg
+    std::vector<int64_t> alg_data(1001);
+
     // Run all supported algs
     for (auto alg_name : this->impl.args.alg_names)
     {
-        this->impl.update_alg(alg_name, {1});
+        this->impl.update_alg(alg_name, {1}, alg_data);
     }
     EXPECT_EQ(this->impl.get_num_edges(), 3);
 };
@@ -224,7 +228,7 @@ template <typename graph_t>
 class CompareWithReferenceTest : public ::testing::Test {
 protected:
     Args args;
-    Dataset dataset;
+    EdgeListDataset dataset;
 private:
     graph_t test_graph;
     reference_impl ref_graph;
@@ -247,7 +251,7 @@ TYPED_TEST_CASE_P(CompareWithReferenceTest);
 
 TYPED_TEST_P(CompareWithReferenceTest, MatchGraphState)
 {
-    for (uint64_t batch = 0; batch < this->dataset.batches.size(); ++batch)
+    for (uint64_t batch = 0; batch < this->dataset.getNumBatches(); ++batch)
     {
         auto b = this->dataset.getBatch(batch);
         this->test_impl.insert_batch(*b);

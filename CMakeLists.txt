@@ -72,8 +72,7 @@ link_libraries(
 add_definitions(-DUSE_MPI)
 add_subdirectory(dynograph_util)
 include_directories(
-    ${CMAKE_SOURCE_DIR}/dynograph_util
-    ${CMAKE_SOURCE_DIR}/dynograph_util/hooks
+    ${CMAKE_SOURCE_DIR}
 )
 link_libraries(
     dynograph_util

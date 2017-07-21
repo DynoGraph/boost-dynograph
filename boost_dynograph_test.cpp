@@ -1,5 +1,5 @@
 #include "boost_dynamic_graph.h"
-#include <dynograph_impl_test.h>
+#include <dynograph_util/dynograph_impl_test.h>
 
 INSTANTIATE_TYPED_TEST_CASE_P(BOOST_DYNOGRAPH, ImplTest, boost_dynamic_graph);
 
@@ -17,7 +17,7 @@ TEST(BOOST_DYNOGRAPH, ScatterBatchTest)
     args.num_trials = 1;
     args.num_alg_trials = 1;
     args.window_size = 1.0;
-    DynoGraph::Dataset dataset(args);
+    DynoGraph::EdgeListDataset dataset(args);
     Graph graph(dataset.getMaxVertexId() + 1);
 
     auto batch = dataset.getBatch(0);
